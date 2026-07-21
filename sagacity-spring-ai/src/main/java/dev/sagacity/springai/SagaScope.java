@@ -42,11 +42,41 @@ final class SagaScope {
 		return context != null ? context.failure : null;
 	}
 
+	static void markAwaitingApproval(String toolName, long journalSeq) {
+		Context context = CURRENT.get();
+		if (context != null) {
+			context.awaitingApproval = true;
+			context.awaitingToolName = toolName;
+			context.awaitingJournalSeq = journalSeq;
+		}
+	}
+
+	static boolean isAwaitingApproval() {
+		Context context = CURRENT.get();
+		return context != null && context.awaitingApproval;
+	}
+
+	static String awaitingToolName() {
+		Context context = CURRENT.get();
+		return context != null ? context.awaitingToolName : null;
+	}
+
+	static long awaitingJournalSeq() {
+		Context context = CURRENT.get();
+		return context != null ? context.awaitingJournalSeq : -1;
+	}
+
 	private static final class Context {
 
 		private final String sagaId;
 
 		private Throwable failure;
+
+		private boolean awaitingApproval;
+
+		private String awaitingToolName;
+
+		private long awaitingJournalSeq;
 
 		private Context(String sagaId) {
 			this.sagaId = sagaId;

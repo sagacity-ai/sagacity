@@ -10,6 +10,9 @@ public enum SagaStatus {
 	COMPENSATED,
 
 	/** The task failed and at least one compensation also failed — needs a human. */
-	COMPENSATION_FAILED
+	COMPENSATION_FAILED,
+
+	/** The saga is suspended pending human approval for an irreversible action. */
+	AWAITING_APPROVAL
 
 }

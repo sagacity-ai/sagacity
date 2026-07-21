@@ -16,6 +16,15 @@ public enum Phase {
 	COMPENSATED,
 
 	/** The declared compensation itself failed; payload holds the error. */
-	COMPENSATION_FAILED
+	COMPENSATION_FAILED,
+
+	/** The saga is suspended waiting for human approval on an IRREVERSIBLE tool. */
+	AWAITING_APPROVAL,
+
+	/** A human approved the execution of an IRREVERSIBLE tool. */
+	APPROVED,
+
+	/** A human rejected the execution of an IRREVERSIBLE tool. */
+	REJECTED
 
 }

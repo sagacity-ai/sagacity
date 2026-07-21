@@ -1,5 +1,8 @@
 package dev.sagacity.springai;
 
+import dev.sagacity.core.Reversibility;
+import dev.sagacity.core.approval.ApprovalRequest;
+import dev.sagacity.core.approval.ApprovalStore;
 import dev.sagacity.core.journal.Phase;
 import dev.sagacity.core.journal.SideEffectJournal;
 import org.springframework.ai.chat.model.ToolContext;
@@ -8,7 +11,8 @@ import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.metadata.ToolMetadata;
 
 /**
- * Decorates a Spring AI {@link ToolCallback} with side-effect journaling.
+ * Decorates a Spring AI {@link ToolCallback} with side-effect journaling and
+ * approval gate support for IRREVERSIBLE tools.
  *
  * <p>Decoration happens at the callback level — not at ToolCallingManager level —
  * deliberately: DefaultToolCallingManager catches ToolExecutionException and
@@ -26,9 +30,21 @@ public final class SagacityToolCallback implements ToolCallback {
 
 	private final SideEffectJournal journal;
 
-	SagacityToolCallback(ToolCallback delegate, SideEffectJournal journal) {
+	private final ApprovalStore approvalStore;
+
+	private final Reversibility reversibility;
+
+	SagacityToolCallback(ToolCallback delegate, SideEffectJournal journal, ApprovalStore approvalStore,
+			Reversibility reversibility) {
 		this.delegate = delegate;
 		this.journal = journal;
+		this.approvalStore = approvalStore;
+		this.reversibility = reversibility;
+	}
+
+	/** Backward-compatible constructor (no approval gate). */
+	SagacityToolCallback(ToolCallback delegate, SideEffectJournal journal) {
+		this(delegate, journal, null, Reversibility.COMPENSATABLE);
 	}
 
 	@Override
@@ -54,6 +70,15 @@ public final class SagacityToolCallback implements ToolCallback {
 		}
 
 		String toolName = getToolDefinition().name();
+
+		// Approval gate for IRREVERSIBLE tools
+		if (this.reversibility == Reversibility.IRREVERSIBLE && this.approvalStore != null) {
+			var intentEntry = this.journal.append(sagaId, toolName, Phase.AWAITING_APPROVAL, toolInput, "");
+			this.approvalStore.save(new ApprovalRequest(sagaId, intentEntry.seq(), toolName, toolInput));
+			SagaScope.markAwaitingApproval(toolName, intentEntry.seq());
+			return "[AWAITING_APPROVAL] Tool '" + toolName + "' requires human approval before execution.";
+		}
+
 		this.journal.append(sagaId, toolName, Phase.INTENT, toolInput, "");
 		try {
 			String result = this.delegate.call(toolInput, toolContext);

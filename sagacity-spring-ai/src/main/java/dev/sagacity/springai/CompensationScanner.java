@@ -21,6 +21,25 @@ final class CompensationScanner {
 	private CompensationScanner() {
 	}
 
+	/** Look up the declared reversibility for a tool name. */
+	static Reversibility reversibilityFor(Object toolBean, String toolName, CompensationRegistry registry) {
+		for (java.lang.reflect.Method method : toolBean.getClass().getDeclaredMethods()) {
+			Compensable compensable = method.getAnnotation(Compensable.class);
+			if (compensable == null) {
+				continue;
+			}
+			Tool toolAnnotation = method.getAnnotation(Tool.class);
+			if (toolAnnotation == null) {
+				continue;
+			}
+			String name = !toolAnnotation.name().isEmpty() ? toolAnnotation.name() : method.getName();
+			if (name.equals(toolName)) {
+				return compensable.reversibility();
+			}
+		}
+		return Reversibility.COMPENSATABLE; // default
+	}
+
 	static void scan(Object toolBean, CompensationRegistry registry) {
 		for (Method method : toolBean.getClass().getDeclaredMethods()) {
 			Compensable compensable = method.getAnnotation(Compensable.class);
