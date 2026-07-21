@@ -15,6 +15,7 @@
     <modules>
         <module>sagacity-core</module>
         <module>sagacity-spring-ai</module>
+        <module>sagacity-spring-boot-starter</module>
         <module>sagacity-examples</module>
     </modules>
 
