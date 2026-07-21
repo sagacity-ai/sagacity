@@ -12,8 +12,14 @@ import java.time.Instant;
  * @param input snapshot of the tool input (JSON as passed to the tool)
  * @param payload result snapshot (EXECUTED), error (FAILED/COMPENSATION_FAILED), or ""
  * @param timestamp UTC time the entry was appended
+ * @param hash SHA-256 hash chaining this entry to the previous (empty string if unchained)
  */
 public record JournalEntry(String sagaId, long seq, String toolName, Phase phase, String input, String payload,
-		Instant timestamp) {
+		Instant timestamp, String hash) {
 
+	/** Constructor without hash — used by InMemorySideEffectJournal (no hash chain). */
+	public JournalEntry(String sagaId, long seq, String toolName, Phase phase, String input, String payload,
+			Instant timestamp) {
+		this(sagaId, seq, toolName, phase, input, payload, timestamp, "");
+	}
 }
