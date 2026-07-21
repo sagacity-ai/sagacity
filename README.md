@@ -9,7 +9,8 @@
 
 > Your agent crashed after step 3 of 5. Sagacity undoes the mess — and produces the evidence.
 
-<!-- TODO: Add demo GIF here -->
+<!-- Demo: 3 tool calls, step 3 fails, steps 1-2 compensated in reverse -->
+![Sagacity Demo](docs/demo.gif)
 
 ---
 
