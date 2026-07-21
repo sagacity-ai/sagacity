@@ -3,10 +3,13 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.x-green.svg)](https://spring.io/projects/spring-ai)
+[![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen.svg)]()
 
 **The SAGA pattern for AI agents.** Declarative compensation for Spring AI tool calls, with a tamper-evident audit trail.
 
 > Your agent crashed after step 3 of 5. Sagacity undoes the mess — and produces the evidence.
+
+<!-- TODO: Add demo GIF here -->
 
 ---
 
@@ -33,6 +36,12 @@ public String reserveInventory(String productId, int quantity) {
 public void releaseInventory(CompensationContext ctx) {
     // undoes the side effect using the original result
 }
+
+@Tool(description = "Send wire transfer")
+@Compensable(reversibility = Reversibility.IRREVERSIBLE)  // requires human approval
+public String sendWireTransfer(String orderId) {
+    // dangerous — can't be undone
+}
 ```
 
 ```java
@@ -44,52 +53,19 @@ SagaResult<ChatResponse> result = sagacity.saga("place-order-123",
         .call().chatResponse());
 
 // On failure → compensations run in reverse order
-// Every step is journaled with tamper-evident hash chain
+// IRREVERSIBLE tools → suspended until human approves
+// Every step journaled with tamper-evident hash chain
 ```
-
-## How It Works
-
-```
-ChatClient → ToolCallingManager → ToolCallback
-                                       ↑
-                              SagacityToolCallback (decorator)
-                                       │
-                     ┌─────────────────┼─────────────────┐
-                     │                 │                 │
-               1. Journal         2. Execute        3. Journal
-                  INTENT            the tool         EXECUTED/FAILED
-                                       │
-                                       ↓ (on failure)
-                              CompensationRunner
-                              walks journal backward
-                              runs @Compensation methods
-```
-
-**Key design decision:** Sagacity decorates at the `ToolCallback` level, not `ToolCallingManager`. This ensures we see raw failures *before* Spring AI's error handling swallows them.
-
-## Features
-
-| Feature | Status | Description |
-|---------|--------|-------------|
-| `@Compensable` / `@Compensation` | ✅ Working | Declare undo logic per tool |
-| Side-effect journal | ✅ In-memory | Append-only log: INTENT → EXECUTED/FAILED → COMPENSATED |
-| Reverse-order compensation | ✅ Working | On failure, undo steps in reverse order |
-| Saga scope | ✅ Working | `sagacity.saga(id, () -> ...)` wraps any agent task |
-| Hash-chained journal (Postgres) | 🚧 M1 | Tamper-evident, EU AI Act Article 12 compliant |
-| Reversibility classification | 🚧 M1 | `REVERSIBLE` / `COMPENSATABLE` / `IRREVERSIBLE` |
-| Human approval gates | 📋 M2 | Irreversible actions require approval before execution |
-| Audit export + verification | 📋 M2 | JSON Lines export, chain verification CLI |
-| Spring Boot Starter | 📋 M3 | Auto-configuration, REST endpoints |
 
 ## Quick Start
 
-> **Pre-alpha.** API will change. Use for evaluation only.
+### 1. Add the dependency
 
 ```xml
-<!-- Maven (not yet on Central — build from source) -->
+<!-- Build from source (Maven Central coming soon) -->
 <dependency>
     <groupId>dev.sagacity</groupId>
-    <artifactId>sagacity-spring-ai</artifactId>
+    <artifactId>sagacity-spring-boot-starter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -100,14 +76,153 @@ cd sagacity
 mvn clean install
 ```
 
-### Run the demo
+### 2. Annotate your tools
 
-```bash
-cd sagacity-examples
-mvn exec:java -Dexec.mainClass="dev.sagacity.examples.PlaceOrderDemo"
+```java
+@Component
+public class OrderTools {
+
+    @Tool(description = "Reserve inventory for a product")
+    @Compensable(by = "releaseInventory")
+    public String reserveInventory(String productId, int quantity) {
+        inventoryService.reserve(productId, quantity);
+        return "Reserved " + quantity + " of " + productId;
+    }
+
+    @Compensation
+    public void releaseInventory(CompensationContext ctx) {
+        // ctx.input() has the original JSON input
+        // ctx.result() has what reserveInventory returned
+        inventoryService.release(extractProductId(ctx.input()));
+    }
+
+    @Tool(description = "Charge the customer")
+    @Compensable(by = "refundCustomer")
+    public String chargeCustomer(String customerId, double amount) {
+        return paymentService.charge(customerId, amount);
+    }
+
+    @Compensation
+    public void refundCustomer(CompensationContext ctx) {
+        paymentService.refund(extractChargeId(ctx.result()));
+    }
+
+    @Tool(description = "Send confirmation email")
+    @Compensable(reversibility = Reversibility.IRREVERSIBLE)
+    public String sendConfirmation(String orderId) {
+        // Can't unsend an email — requires human approval before executing
+        return emailService.send(orderId);
+    }
+}
 ```
 
-The demo shows: 3 tool calls, step 3 fails, steps 1–2 are compensated in reverse.
+### 3. Run your agent in a saga
+
+```java
+@Service
+public class OrderAgent {
+
+    @Autowired private Sagacity sagacity;
+    @Autowired private ChatClient chatClient;
+    @Autowired private OrderTools orderTools;
+
+    public SagaResult<ChatResponse> placeOrder(String userRequest) {
+        ToolCallback[] tools = sagacity.wrap(orderTools);
+
+        return sagacity.saga("order-" + UUID.randomUUID(), () ->
+            chatClient.prompt()
+                .user(userRequest)
+                .toolCallbacks(tools)
+                .call()
+                .chatResponse()
+        );
+    }
+}
+```
+
+### 4. Configure (application.yml)
+
+```yaml
+# Sagacity auto-configures with sensible defaults. All optional:
+sagacity:
+  enabled: true                      # default
+  schema-init: true                  # auto-create tables on startup
+  approval-endpoints-enabled: true   # expose REST API
+
+# Point to your Postgres (or any JDBC DataSource):
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/myapp
+    username: myuser
+    password: mypass
+```
+
+No DataSource? Sagacity falls back to an in-memory journal (great for dev/testing).
+
+## How It Works
+
+```
+ChatClient → ToolCallingManager → ToolCallback
+                                       ↑
+                              SagacityToolCallback (decorator)
+                                       │
+                  ┌────────────────────┼────────────────────┐
+                  │                    │                    │
+            1. Journal           2. Execute           3. Journal
+               INTENT             the tool            EXECUTED/FAILED
+                  │                    │
+                  │    (if IRREVERSIBLE)│   (on failure)
+                  │         ↓          │        ↓
+                  │  AWAITING_APPROVAL │  CompensationRunner
+                  │  (saga suspends)   │  walks journal backward
+                  │                    │  runs @Compensation methods
+                  │                    │
+                  ↓                    ↓
+           Human approves       Journal records
+           via REST API         every compensation
+```
+
+## REST API (Spring Boot Starter)
+
+The starter exposes these endpoints automatically:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/sagacity/approvals` | List all pending approval requests |
+| `GET` | `/sagacity/approvals/{sagaId}` | Pending approvals for a saga |
+| `POST` | `/sagacity/approve/{sagaId}/{seq}` | Approve (body: `{"approver": "admin@co.com"}`) |
+| `POST` | `/sagacity/reject/{sagaId}/{seq}` | Reject + trigger compensation |
+| `GET` | `/sagacity/audit/{sagaId}` | Export journal as JSON Lines |
+| `GET` | `/sagacity/audit/{sagaId}/verify` | Verify hash chain integrity |
+
+### Example: Approve a pending action
+
+```bash
+curl -X POST http://localhost:8080/sagacity/approve/order-123/5 \
+  -H "Content-Type: application/json" \
+  -d '{"approver": "manager@company.com"}'
+```
+
+### Example: Verify audit trail
+
+```bash
+curl http://localhost:8080/sagacity/audit/order-123/verify
+# {"valid":true,"entryCount":8,"breakAtIndex":-1,"message":"all 8 entries verified"}
+```
+
+## Features
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| `@Compensable` / `@Compensation` | ✅ | Declare undo logic per tool |
+| Reverse-order compensation | ✅ | On failure, undo steps in reverse |
+| Postgres journal + SHA-256 hash chain | ✅ | Tamper-evident, crash-safe |
+| Human approval gates | ✅ | IRREVERSIBLE tools suspend until approved |
+| Approve/Reject REST API | ✅ | With approver identity in audit trail |
+| Audit export (JSON Lines) | ✅ | Compliance-ready, one entry per line |
+| Hash chain verification | ✅ | Detect any modification to history |
+| Spring Boot Starter | ✅ | Zero-config auto-wiring |
+| Concurrent-safe | ✅ | SELECT FOR UPDATE, tested with 10 threads |
 
 ## Why Not Just Use Temporal / DBOS / Restate?
 
@@ -115,41 +230,28 @@ Those solve **durability** (resume after crash). Sagacity solves **compensation*
 
 | | Temporal/DBOS/Restate | Sagacity |
 |---|---|---|
-| Resume after crash | ✅ | ❌ (M4 via DBOS integration) |
+| Resume after crash | ✅ | 📋 (via DBOS integration) |
 | Undo side effects on failure | ❌ | ✅ |
 | Tamper-evident audit trail | ❌ | ✅ |
 | EU AI Act Article 12 | ❌ | ✅ |
+| Human approval gates | ❌ | ✅ |
 | Spring AI native | ❌ | ✅ |
 | Annotation-based DX | ❌ | ✅ |
 
-They're complementary. Sagacity + DBOS (planned M4) gives you both.
+They're complementary. Sagacity + DBOS (planned) gives you both.
 
 ## Architecture
 
 ```
-sagacity-core          # Journal, hash chain, saga state machine, compensation runner
-                       # (no Spring AI dependency — reusable for LangChain4j etc.)
+sagacity-core                    # Journal, hash chain, compensation runner, approval store
+                                 # Zero framework dependencies — reusable anywhere
 
-sagacity-spring-ai     # SagacityToolCallback, @Compensable processing, Sagacity facade
+sagacity-spring-ai               # SagacityToolCallback, @Compensable processing, Sagacity facade
 
-sagacity-examples      # Order-placing agent demo with induced failure
+sagacity-spring-boot-starter     # Auto-config, REST endpoints, schema init
 
-(coming)
-sagacity-spring-boot-starter   # Auto-config, approval REST endpoint, schema init
-sagacity-langchain4j           # LangChain4j adapter
+sagacity-examples                # Order-placing agent demo with induced failure
 ```
-
-## Roadmap
-
-| Milestone | Target | Status |
-|-----------|--------|--------|
-| **M0** — Walking skeleton | ✅ Done | In-memory journal, annotations, compensation runner, 10 tests green |
-| **M1** — Real persistence | In progress | Postgres journal, hash chain, crash recovery |
-| **M2** — Approval gates + audit | Next | IRREVERSIBLE tools, REST approve/reject, audit export |
-| **M3** — Launch | — | Spring Boot starter, Maven Central, docs, demo app |
-| **M4** — Ecosystem | — | DBOS integration, LangChain4j, streaming, MCP tools |
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
 ## Compliance: EU AI Act Article 12
 
@@ -158,22 +260,44 @@ The EU AI Act (enforceable for high-risk systems from **2026-08-02**) requires:
 - Tamper-evident records retained 6–24 months
 - Traceable decision chains
 
-Sagacity's hash-chained journal is designed with Article 12 in mind. Every tool call is journaled with:
-- Saga ID, tool name, timestamp
-- Input parameters, output/error
-- SHA-256 hash linking to the previous entry (tamper detection)
-- Compensation outcome (if triggered)
+Sagacity's hash-chained journal maps directly to Article 12:
+
+| Article 12 Requirement | Sagacity Feature |
+|------------------------|-----------------|
+| Automatic logging | Every tool call journaled (INTENT/EXECUTED/FAILED) |
+| Tamper-evident | SHA-256 hash chain, verifiable via REST API |
+| Traceable decisions | Saga ID links all steps; approval identity recorded |
+| Retention | Postgres persistence; retention policies (roadmap) |
+
+## Roadmap
+
+| Milestone | Status |
+|-----------|--------|
+| **M0** — Walking skeleton | ✅ Done |
+| **M1** — Postgres journal + hash chain | ✅ Done |
+| **M2** — Approval gates + audit export | ✅ Done |
+| **M3** — Spring Boot Starter | ✅ Done |
+| **M4** — Ecosystem | 📋 Planned |
+
+### M4 (planned):
+- DBOS integration (durable compensation runs)
+- LangChain4j adapter
+- Streaming tool-call support
+- MCP tool support
+- Approval dashboard UI
+- Maven Central publish
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
 ## Contributing
 
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Areas where help is most impactful:
-- **M1:** Postgres journal implementation (Spring Data JDBC)
-- **M1:** Hash chain verification
-- **M2:** Approval gate REST API design
-- **Testing:** More failure scenario tests
-- **Docs:** Usage guides, architecture diagrams
+**High-impact areas:**
+- Testing: more failure scenarios, distributed tests
+- LangChain4j adapter
+- Documentation and examples
+- Approval dashboard UI (React/Vue)
 
 ## License
 
@@ -182,6 +306,7 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 ---
 
 <p align="center">
-  <em>Built by <a href="https://github.com/sumitvairagar">@sumitvairagar</a> — 
-  AI doesn't undo its mistakes. Sagacity does.</em>
+  <strong>AI doesn't undo its mistakes. Sagacity does.</strong><br><br>
+  Built by <a href="https://github.com/sumitvairagar">@sumitvairagar</a> | 
+  <a href="https://youtube.com/@EngineerInAi">YouTube</a>
 </p>
