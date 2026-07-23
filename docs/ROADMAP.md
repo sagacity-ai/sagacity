@@ -38,6 +38,11 @@ Spring AI contribution track. "Done" = tested + documented, not just working.
   in under 10 minutes.
 
 ## M4 — Ecosystem (post-launch, driven by feedback)
+- **Typed compensation methods** — auto-bind original tool parameters and result
+  to the compensation method signature (no more manual JSON parsing). Reuses
+  Spring AI's parameter resolution via `-parameters` flag. Eliminates
+  `CompensationContext` string wrangling for the common case while keeping
+  the raw context available for advanced use.
 - DBOS integration (durable compensation runs) — `sagacity-dbos`.
 - LangChain4j adapter — `sagacity-langchain4j`.
 - Streaming tool-call support.
