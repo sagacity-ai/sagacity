@@ -3,7 +3,8 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.x-green.svg)](https://spring.io/projects/spring-ai)
-[![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen.svg)]()
+[![Build](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml/badge.svg)](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml)
+[![Tests](https://img.shields.io/badge/tests-75%20unit%20%2B%2011%20IT-brightgreen.svg)]()
 
 **The SAGA pattern for AI agents.** Declarative compensation for Spring AI tool calls, with a tamper-evident audit trail.
 
