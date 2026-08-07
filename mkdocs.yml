@@ -37,6 +37,7 @@ theme:
 # build every .md under docs/ into the public site, including that one.
 exclude_docs: |
   LAUNCH-POSTS.md
+  requirements.txt
 
 markdown_extensions:
   - admonition

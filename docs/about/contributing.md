@@ -37,9 +37,12 @@ assertion. Collect them and assert they are empty.
 ## Working on the docs
 
 ```bash
-pip install mkdocs-material
-mkdocs serve      # http://localhost:8000
+python3 -m venv .venv
+.venv/bin/pip install -r docs/requirements.txt
+.venv/bin/mkdocs serve      # http://localhost:8000
 ```
+
+The toolchain is pinned in `docs/requirements.txt` so local builds and CI agree.
 
 Docs follow [Diátaxis](https://diataxis.fr): getting-started teaches, guides
 solve a task, reference describes, concepts explain why. Keeping those separate
