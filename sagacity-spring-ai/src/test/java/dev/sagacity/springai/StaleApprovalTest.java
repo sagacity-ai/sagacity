@@ -92,8 +92,8 @@ class StaleApprovalTest {
                 byName(tools, "sendWireTransfer"));
 
         assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
-        assertThat(transferTools.lastTransferTo).isNull(); // tool never ran
-        assertThat(transferTools.compensated).isTrue();    // prior steps undone
+        assertThat(transferTools.lastTransferTo).isNull();      // tool never ran
+        assertThat(transferTools.compensationCount).isEqualTo(1); // prior steps undone, once
 
         // Verify REJECTED phase recorded in journal
         assertThat(sagacity.journal().entries("saga-1"))
@@ -198,6 +198,113 @@ class StaleApprovalTest {
         assertThat(transferTools.lastTransferTo).isNull();
     }
 
+    // ── Approval must actually exist ───────────────────────────────────────
+
+    @Test
+    void resumeSaga_withoutApproval_refusesToExecuteEvenWhenPayloadMatches() {
+        sagacity.saga("saga-1", () -> {
+            byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
+            return null;
+        });
+
+        long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
+        // NOTE: approve() is deliberately never called.
+
+        SagaResult<String> result = sagacity.resumeSaga(
+                "saga-1", seq,
+                "{\"amount\":100,\"to\":\"alice\"}",  // payload is the approved-for one
+                byName(tools, "sendWireTransfer"));
+
+        assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
+        assertThat(transferTools.lastTransferTo).isNull();
+        assertThat(result.failure()).hasMessageContaining("no human approval recorded");
+        assertThat(sagacity.journal().entries("saga-1"))
+                .anyMatch(e -> e.phase() == Phase.REJECTED
+                        && e.payload().contains("no approval recorded"));
+    }
+
+    @Test
+    void resumeSaga_afterRejection_cannotBeResurrected() {
+        sagacity.saga("saga-1", () -> {
+            byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
+            return null;
+        });
+
+        long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
+        sagacity.reject("saga-1", seq, "manager@company.com");
+
+        assertThatThrownBy(() -> sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":100,\"to\":\"alice\"}", byName(tools, "sendWireTransfer")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No pending approval found");
+        assertThat(transferTools.lastTransferTo).isNull();
+    }
+
+    @Test
+    void resumeSaga_withApprovalCarryingNoPayloadHash_failsClosed() {
+        sagacity.saga("saga-1", () -> {
+            byName(tools, "reserveInventory").call("{\"item\":\"laptop\"}");
+            return null;
+        });
+
+        // A request built through the legacy constructor has an empty inputHash.
+        // Nothing about it can be verified, so it must be refused — not waved through.
+        long seq = 99;
+        sagacity.approvalStore().save(new ApprovalRequest("saga-1", seq, "sendWireTransfer",
+                "{\"amount\":100,\"to\":\"alice\"}"));
+        sagacity.approve("saga-1", seq, "manager@company.com");
+
+        SagaResult<String> result = sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":100,\"to\":\"alice\"}", byName(tools, "sendWireTransfer"));
+
+        assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
+        assertThat(transferTools.lastTransferTo).isNull();
+        assertThat(result.failure()).hasMessageContaining("no recorded payload hash");
+    }
+
+    // ── Compensation must run exactly once ─────────────────────────────────
+
+    @Test
+    void resumeSaga_staleApproval_compensatesExactlyOnce() {
+        sagacity.saga("saga-1", () -> {
+            byName(tools, "reserveInventory").call("{\"item\":\"laptop\"}");
+            byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
+            return null;
+        });
+
+        long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
+        sagacity.approve("saga-1", seq, "manager@company.com");
+
+        sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":10000,\"to\":\"mallory\"}", byName(tools, "sendWireTransfer"));
+
+        assertThat(transferTools.compensationCount).isEqualTo(1);
+        assertThat(sagacity.journal().entries("saga-1"))
+                .filteredOn(e -> e.phase() == Phase.COMPENSATED)
+                .hasSize(1);
+    }
+
+    @Test
+    void resumeSaga_whenApprovedToolFails_compensatesExactlyOnce() {
+        FailingTransferTools failing = new FailingTransferTools();
+        ToolCallback[] failTools = sagacity.wrap(failing);
+
+        sagacity.saga("saga-2", () -> {
+            byName(failTools, "reserveInventory").call("{\"item\":\"laptop\"}");
+            byName(failTools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
+            return null;
+        });
+
+        long seq = sagacity.pendingApprovals("saga-2").get(0).journalSeq();
+        sagacity.approve("saga-2", seq, "manager@company.com");
+
+        SagaResult<String> result = sagacity.resumeSaga("saga-2", seq,
+                "{\"amount\":100,\"to\":\"alice\"}", byName(failTools, "sendWireTransfer"));
+
+        assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
+        assertThat(failing.compensationCount).isEqualTo(1);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     private static ToolCallback byName(ToolCallback[] callbacks, String name) {
@@ -213,7 +320,12 @@ class StaleApprovalTest {
 
         String lastTransferTo = null;
         int lastAmount = 0;
-        boolean compensated = false;
+
+        /**
+         * Counted, not flagged. A boolean cannot tell "compensated" apart from
+         * "compensated twice", and double-compensation means a double refund.
+         */
+        int compensationCount = 0;
 
         @Tool(description = "Reserve inventory item")
         @Compensable(by = "releaseInventory")
@@ -223,7 +335,7 @@ class StaleApprovalTest {
 
         @Compensation
         public void releaseInventory(CompensationContext ctx) {
-            this.compensated = true;
+            this.compensationCount++;
         }
 
         @Tool(description = "Send wire transfer")
@@ -232,6 +344,30 @@ class StaleApprovalTest {
             this.lastAmount = Integer.parseInt(amount);
             this.lastTransferTo = to;
             return "transfer-ok";
+        }
+
+    }
+
+    /** Same shape, but the approved tool blows up at execution time. */
+    static class FailingTransferTools {
+
+        int compensationCount = 0;
+
+        @Tool(description = "Reserve inventory item")
+        @Compensable(by = "releaseInventory")
+        public String reserveInventory(String item) {
+            return "reserved-" + item;
+        }
+
+        @Compensation
+        public void releaseInventory(CompensationContext ctx) {
+            this.compensationCount++;
+        }
+
+        @Tool(description = "Send wire transfer")
+        @Compensable(reversibility = Reversibility.IRREVERSIBLE)
+        public String sendWireTransfer(String amount, String to) {
+            throw new IllegalStateException("payment gateway unreachable");
         }
 
     }

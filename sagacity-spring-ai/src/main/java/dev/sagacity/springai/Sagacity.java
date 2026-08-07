@@ -183,18 +183,31 @@ public final class Sagacity {
 
 		ApprovalRequest request = maybeRequest.get();
 
-		// Stale-approval check — hash the live payload and compare
+		// A pending request is not an approval. approve() leaves the request in the
+		// store so this method can verify the payload, which means store state alone
+		// cannot distinguish "approved" from "never looked at". Require the journaled
+		// APPROVED decision before going any further.
+		if (approverFor(sagaId, journalSeq).isEmpty()) {
+			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+					"no approval recorded for this saga/seq",
+					"Tool execution refused: no human approval recorded for saga=" + sagaId
+							+ " seq=" + journalSeq);
+		}
+
+		// Stale-approval check — hash the live payload and compare. An absent hash is
+		// treated as a failed check, not a skipped one: a request that never recorded
+		// what was approved cannot be shown to match.
 		String liveHash = HashChain.sha256(livePayload);
-		if (!request.inputHash().isEmpty() && !liveHash.equals(request.inputHash())) {
+		if (request.inputHash().isEmpty()) {
+			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+					"approval carries no payload hash — cannot verify",
+					"Approval rejected: request has no recorded payload hash to verify against");
+		}
+		if (!liveHash.equals(request.inputHash())) {
 			// Payload has changed since approval was granted — reject and compensate
-			this.journal.append(sagaId, request.toolName(), Phase.REJECTED,
-					"seq=" + journalSeq, "stale-approval: payload changed since approval was granted");
-			this.approvalStore.remove(sagaId, journalSeq);
-			this.runner.compensate(sagaId);
-			return SagaResult.compensated(sagaId,
-					this.runner.compensate(sagaId),
-					new IllegalStateException(
-							"Stale approval rejected: payload changed since approval was granted"));
+			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+					"stale-approval: payload changed since approval was granted",
+					"Stale approval rejected: payload changed since approval was granted");
 		}
 
 		// Payload matches — safe to execute
@@ -211,9 +224,38 @@ public final class Sagacity {
 			String detail = rootCause.getMessage() != null ? rootCause.getMessage()
 					: rootCause.getClass().getSimpleName();
 			this.journal.append(sagaId, request.toolName(), Phase.FAILED, livePayload, detail);
-			this.runner.compensate(sagaId);
-			return SagaResult.compensated(sagaId, this.runner.compensate(sagaId), rootCause);
+			CompensationReport report = this.runner.compensate(sagaId);
+			return SagaResult.compensated(sagaId, report, rootCause);
 		}
+	}
+
+	/**
+	 * Journals a REJECTED decision, drops the pending request, and compensates the
+	 * saga exactly once. Compensation is not idempotent — {@link CompensationRunner}
+	 * re-runs every EXECUTED effect it finds — so the report must come from a single
+	 * call, never from a second one made while building the result.
+	 */
+	private SagaResult<String> rejectAndCompensate(String sagaId, long journalSeq, String toolName,
+			String journalDetail, String failureMessage) {
+		this.journal.append(sagaId, toolName, Phase.REJECTED, "seq=" + journalSeq, journalDetail);
+		this.approvalStore.remove(sagaId, journalSeq);
+		CompensationReport report = this.runner.compensate(sagaId);
+		return SagaResult.compensated(sagaId, report, new IllegalStateException(failureMessage));
+	}
+
+	/**
+	 * Returns the identity that approved this saga/seq, or empty if no APPROVED
+	 * decision was journaled. Reads the journal rather than a side table so the
+	 * decision that gates execution is the same one covered by the hash chain.
+	 */
+	private java.util.Optional<String> approverFor(String sagaId, long journalSeq) {
+		String seqMarker = "seq=" + journalSeq;
+		return this.journal.entries(sagaId)
+			.stream()
+			.filter(entry -> entry.phase() == Phase.APPROVED && seqMarker.equals(entry.input()))
+			.map(entry -> entry.payload().startsWith("approver=")
+					? entry.payload().substring("approver=".length()) : entry.payload())
+			.findFirst();
 	}
 
 	/** Get all pending approval requests. */
