@@ -39,6 +39,14 @@ public final class AuditExporter {
 		if (entries.isEmpty()) {
 			return new VerificationResult(true, entries.size(), -1, "empty journal");
 		}
+		// An unchained journal (InMemorySideEffectJournal writes no hashes) would
+		// otherwise fail at entry 0 and read as "tampered". Absence of evidence is
+		// not evidence of tampering — say which one this is.
+		if (entries.stream().allMatch(entry -> entry.hash().isEmpty())) {
+			return new VerificationResult(false, entries.size(), -1,
+					"journal is not hash-chained — tamper evidence unavailable "
+							+ "(use a hash-chaining journal such as PostgresSideEffectJournal)");
+		}
 		String previousHash = HashChain.zeroHash();
 		for (int i = 0; i < entries.size(); i++) {
 			JournalEntry entry = entries.get(i);

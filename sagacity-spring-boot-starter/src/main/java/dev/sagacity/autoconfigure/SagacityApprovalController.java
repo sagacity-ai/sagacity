@@ -1,11 +1,13 @@
 package dev.sagacity.autoconfigure;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import dev.sagacity.core.approval.ApprovalDecision;
 import dev.sagacity.core.approval.ApprovalRequest;
 import dev.sagacity.core.audit.AuditExporter;
+import dev.sagacity.core.saga.SagaStatus;
 import dev.sagacity.springai.Sagacity;
 import dev.sagacity.springai.SagaResult;
 
@@ -83,6 +85,50 @@ public class SagacityApprovalController {
         String approver = body.getOrDefault("approver", "unknown");
         ApprovalDecision decision = sagacity.reject(sagaId, journalSeq, approver);
         return ResponseEntity.ok(decision);
+    }
+
+    /**
+     * Execute a tool that a human has approved, with payload verification.
+     *
+     * <p>Body: {@code {"payload": "{\"amount\":100,\"to\":\"alice\"}"}}
+     *
+     * <p>Returns 200 with the saga result when the tool ran, 409 when execution
+     * was refused — no approval recorded, or the payload no longer matches the
+     * one that was approved — and 404 when nothing is pending for this saga/seq.
+     * A refusal is a completed action, not a server error: prior steps have been
+     * compensated and the refusal is journaled.
+     */
+    @PostMapping("/resume/{sagaId}/{journalSeq}")
+    public ResponseEntity<Map<String, Object>> resume(
+            @PathVariable String sagaId,
+            @PathVariable long journalSeq,
+            @RequestBody Map<String, String> body) {
+        String payload = body.get("payload");
+        if (payload == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "body must contain a 'payload' field"));
+        }
+
+        SagaResult<String> result;
+        try {
+            result = sagacity.resumeSaga(sagaId, journalSeq, payload);
+        }
+        catch (IllegalStateException ex) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("sagaId", sagaId, "journalSeq", journalSeq,
+                            "error", String.valueOf(ex.getMessage())));
+        }
+
+        Map<String, Object> responseBody = new LinkedHashMap<>();
+        responseBody.put("sagaId", result.sagaId());
+        responseBody.put("status", result.status().name());
+        if (result.status() == SagaStatus.COMPLETED) {
+            responseBody.put("result", result.value());
+            return ResponseEntity.ok(responseBody);
+        }
+        responseBody.put("reason", result.failure() != null
+                ? result.failure().getMessage() : "execution refused");
+        return ResponseEntity.status(409).body(responseBody);
     }
 
     @GetMapping("/audit/{sagaId}")

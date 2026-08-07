@@ -41,7 +41,7 @@ class SagacityAutoConfigurationTest {
                         "spring.datasource.username=sa"
                 )
                 .withConfiguration(AutoConfigurations.of(
-                        org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class
+                        org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class
                 ))
                 .run(context -> {
                     assertThat(context).hasSingleBean(SideEffectJournal.class);

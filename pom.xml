@@ -17,14 +17,25 @@
         <module>sagacity-spring-ai</module>
         <module>sagacity-spring-boot-starter</module>
         <module>sagacity-examples</module>
+        <!-- Last: aggregates coverage over everything above -->
+        <module>sagacity-coverage</module>
     </modules>
 
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-ai.version>2.0.0</spring-ai.version>
+        <!--
+          Must stay on the Spring Framework 7 line that Spring AI 2.0.0 compiles
+          against. Boot 3.5.x pulls Spring Framework 6.2, which downgrades
+          spring-core underneath Spring AI and fails at runtime with
+          NoClassDefFoundError: org/springframework/core/Nullness.
+        -->
+        <spring-boot.version>4.0.2</spring-boot.version>
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.26.3</assertj.version>
+        <jacoco.version>0.8.12</jacoco.version>
+        <maven-failsafe.version>3.2.5</maven-failsafe.version>
     </properties>
 
     <dependencyManagement>
@@ -43,6 +54,13 @@
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-model</artifactId>
                 <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.junit</groupId>
@@ -68,6 +86,11 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.2.5</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -79,6 +102,47 @@
                     <!-- Spring AI binds tool-call JSON arguments by parameter name -->
                     <parameters>true</parameters>
                 </configuration>
+            </plugin>
+            <!--
+              *IT tests need Docker and run under `mvn verify`, not `mvn test`.
+              Testcontainers skips them when no daemon is reachable, so a build
+              without Docker still passes.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+              Per-module coverage plus an aggregate report over every module,
+              written to sagacity-coverage/target/site/jacoco-aggregate.
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -44,6 +44,9 @@ public final class Sagacity {
 
 	private final AuditExporter auditExporter;
 
+	/** Raw, undecorated callbacks by tool name — populated by {@link #wrap}. */
+	private final java.util.Map<String, ToolCallback> delegates = new java.util.concurrent.ConcurrentHashMap<>();
+
 	private Sagacity(SideEffectJournal journal, ApprovalStore approvalStore) {
 		this.journal = journal;
 		this.approvalStore = approvalStore;
@@ -80,6 +83,9 @@ public final class Sagacity {
 			for (ToolCallback callback : callbacks) {
 				Reversibility rev = CompensationScanner.reversibilityFor(toolBean,
 						callback.getToolDefinition().name(), this.registry);
+				// Keep the raw callback: resuming an approved tool must call the
+				// undecorated one, or the approval gate fires a second time.
+				this.delegates.put(callback.getToolDefinition().name(), callback);
 				wrapped.add(new SagacityToolCallback(callback, this.journal, this.approvalStore, rev));
 			}
 		}
@@ -172,7 +178,7 @@ public final class Sagacity {
 	 * @return SagaResult reflecting COMPLETED or COMPENSATED
 	 */
 	public SagaResult<String> resumeSaga(String sagaId, long journalSeq,
-			String livePayload, org.springframework.ai.tool.ToolCallback delegateCallback) {
+			String livePayload, ToolCallback delegateCallback) {
 
 		// Locate the original approval request (still in store until we remove it)
 		var maybeRequest = this.approvalStore.find(sagaId, journalSeq);
@@ -227,6 +233,28 @@ public final class Sagacity {
 			CompensationReport report = this.runner.compensate(sagaId);
 			return SagaResult.compensated(sagaId, report, rootCause);
 		}
+	}
+
+	/**
+	 * Resume an approved tool using the callback registered by {@link #wrap} for
+	 * the tool named in the approval request. Same verification as the
+	 * four-argument form — this overload only saves the caller from holding on to
+	 * the undecorated callback, which is what lets the REST layer resume at all.
+	 *
+	 * @throws IllegalStateException if no approval is pending, or if the tool was
+	 *                               never registered through {@link #wrap}
+	 */
+	public SagaResult<String> resumeSaga(String sagaId, long journalSeq, String livePayload) {
+		ApprovalRequest request = this.approvalStore.find(sagaId, journalSeq)
+			.orElseThrow(() -> new IllegalStateException(
+					"No pending approval found for saga=" + sagaId + " seq=" + journalSeq));
+
+		ToolCallback delegate = this.delegates.get(request.toolName());
+		if (delegate == null) {
+			throw new IllegalStateException("Tool '" + request.toolName()
+					+ "' is not registered with this Sagacity instance — was it passed to wrap()?");
+		}
+		return resumeSaga(sagaId, journalSeq, livePayload, delegate);
 	}
 
 	/**

@@ -195,15 +195,32 @@ The starter exposes these endpoints automatically:
 | `GET` | `/sagacity/approvals/{sagaId}` | Pending approvals for a saga |
 | `POST` | `/sagacity/approve/{sagaId}/{seq}` | Approve (body: `{"approver": "admin@co.com"}`) |
 | `POST` | `/sagacity/reject/{sagaId}/{seq}` | Reject + trigger compensation |
+| `POST` | `/sagacity/resume/{sagaId}/{seq}` | Execute an approved tool (body: `{"payload": "..."}`) |
 | `GET` | `/sagacity/audit/{sagaId}` | Export journal as JSON Lines |
 | `GET` | `/sagacity/audit/{sagaId}/verify` | Verify hash chain integrity |
 
-### Example: Approve a pending action
+Approving does not execute. `/approve` records who signed off; `/resume` runs
+the tool and is where the payload is checked against what was approved. Both
+steps are required — `/resume` refuses with `409` if no approval was recorded,
+and refuses again if the payload changed since.
+
+### Example: Approve, then execute
 
 ```bash
+# 1. Record the human decision
 curl -X POST http://localhost:8080/sagacity/approve/order-123/5 \
   -H "Content-Type: application/json" \
   -d '{"approver": "manager@company.com"}'
+
+# 2. Execute, binding to the exact payload that was approved
+curl -X POST http://localhost:8080/sagacity/resume/order-123/5 \
+  -H "Content-Type: application/json" \
+  -d '{"payload": "{\"amount\":100,\"to\":\"alice\"}"}'
+# {"sagaId":"order-123","status":"COMPLETED","result":"\"transfer-ok\""}
+
+# A payload that differs from the approved one is refused, not executed:
+# 409 {"sagaId":"order-123","status":"COMPENSATED",
+#      "reason":"Stale approval rejected: payload changed since approval was granted"}
 ```
 
 ### Example: Verify audit trail

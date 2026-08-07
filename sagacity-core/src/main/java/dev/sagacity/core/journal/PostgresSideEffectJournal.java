@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +48,9 @@ public final class PostgresSideEffectJournal implements SideEffectJournal {
 					}
 				}
 
-				Instant timestamp = Instant.now();
+				// Truncated to what a Postgres TIMESTAMP column can hold, so the value
+				// that gets hashed is byte-identical to the value read back later.
+				Instant timestamp = Instant.now().truncatedTo(ChronoUnit.MICROS);
 				String hash = HashChain.computeHash(previousHash, sagaId, nextSeq, toolName,
 						phase, input, payload, timestamp);
 
