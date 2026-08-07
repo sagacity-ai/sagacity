@@ -66,13 +66,14 @@ SagaResult<ChatResponse> result = sagacity.saga("place-order-123",
 ### 1. Add the dependency
 
 ```xml
-<!-- Build from source (Maven Central coming soon) -->
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
+
+Or build from source:
 
 ```bash
 git clone https://github.com/sumitvairagar/sagacity.git
