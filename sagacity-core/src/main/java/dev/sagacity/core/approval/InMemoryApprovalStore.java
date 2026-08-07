@@ -1,6 +1,7 @@
 package dev.sagacity.core.approval;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -23,6 +24,13 @@ public final class InMemoryApprovalStore implements ApprovalStore {
 	@Override
 	public List<ApprovalRequest> pendingRequests(String sagaId) {
 		return this.requests.stream().filter(r -> r.sagaId().equals(sagaId)).toList();
+	}
+
+	@Override
+	public Optional<ApprovalRequest> find(String sagaId, long journalSeq) {
+		return this.requests.stream()
+				.filter(r -> r.sagaId().equals(sagaId) && r.journalSeq() == journalSeq)
+				.findFirst();
 	}
 
 	@Override

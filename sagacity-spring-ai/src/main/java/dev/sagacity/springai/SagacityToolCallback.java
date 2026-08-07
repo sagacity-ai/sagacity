@@ -3,6 +3,7 @@ package dev.sagacity.springai;
 import dev.sagacity.core.Reversibility;
 import dev.sagacity.core.approval.ApprovalRequest;
 import dev.sagacity.core.approval.ApprovalStore;
+import dev.sagacity.core.journal.HashChain;
 import dev.sagacity.core.journal.Phase;
 import dev.sagacity.core.journal.SideEffectJournal;
 import org.springframework.ai.chat.model.ToolContext;
@@ -74,7 +75,8 @@ public final class SagacityToolCallback implements ToolCallback {
 		// Approval gate for IRREVERSIBLE tools
 		if (this.reversibility == Reversibility.IRREVERSIBLE && this.approvalStore != null) {
 			var intentEntry = this.journal.append(sagaId, toolName, Phase.AWAITING_APPROVAL, toolInput, "");
-			this.approvalStore.save(new ApprovalRequest(sagaId, intentEntry.seq(), toolName, toolInput));
+			String inputHash = HashChain.sha256(toolInput);
+			this.approvalStore.save(new ApprovalRequest(sagaId, intentEntry.seq(), toolName, toolInput, inputHash));
 			SagaScope.markAwaitingApproval(toolName, intentEntry.seq());
 			return "[AWAITING_APPROVAL] Tool '" + toolName + "' requires human approval before execution.";
 		}
