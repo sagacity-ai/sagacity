@@ -1,0 +1,87 @@
+site_name: Sagacity
+site_description: SAGA compensation for Spring AI tool calls, with a tamper-evident audit trail
+site_url: https://sumitvairagar.github.io/sagacity/
+repo_url: https://github.com/sumitvairagar/sagacity
+repo_name: sumitvairagar/sagacity
+edit_uri: edit/main/docs/
+copyright: Apache License 2.0
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+# docs/LAUNCH-POSTS.md is a gitignored private draft. MkDocs would otherwise
+# build every .md under docs/ into the public site, including that one.
+exclude_docs: |
+  LAUNCH-POSTS.md
+  requirements.txt
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+# Diátaxis: learning (Getting started), tasks (Guides),
+# information (Reference), understanding (Concepts).
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Guides:
+      - Compensating a failed saga: guides/compensation.md
+      - Approval gates for irreversible tools: guides/approval-gates.md
+      - Audit export and verification: guides/audit-and-verification.md
+      - Production checklist: guides/production-checklist.md
+  - Reference:
+      - Annotations: reference/annotations.md
+      - Sagacity API: reference/api.md
+      - REST API: reference/rest-api.md
+      - Configuration: reference/configuration.md
+      - Journal schema: reference/journal-schema.md
+  - Concepts:
+      - The saga model: concepts/saga-model.md
+      - The hash chain: concepts/hash-chain.md
+      - Threat model: concepts/threat-model.md
+  - About:
+      - Roadmap: about/roadmap.md
+      - Testing strategy: about/testing.md
+      - Design spec: about/spec.md
+      - Contributing: about/contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sumitvairagar/sagacity

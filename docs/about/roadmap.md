@@ -29,13 +29,21 @@ Spring AI contribution track. "Done" = tested + documented, not just working.
   Article 12 fields — this mapping table is itself launch-post content.
 - **Exit test:** tamper with a journal row in SQL → verifier detects the break.
 
-## M3 — Launch (1–2 weekends + writing time)
-- `sagacity-examples`: order-placing agent demo app w/ induced failures, docker-compose.
-- README, reference docs, javadoc; publish to Maven Central (io.github.* groupId).
-- Launch post: "The SAGA pattern for AI agents" + Article 12 angle.
-  Targets: HN, r/java, Spring community, InfoQ pitch. Cite the RAC arXiv paper.
-- **Exit criterion:** a stranger can go from `git clone` to compensated failure demo
-  in under 10 minutes.
+## M3 — Launch ✅ DONE 2026-08-07
+- Published to Maven Central as `io.github.sumitvairagar:sagacity-*:0.1.0`,
+  GPG-signed with sources and javadoc.
+- Documentation site (this site), CI running unit tests plus real-Postgres
+  integration tests on every push.
+- Security hardening from community review: approval-gate bypass, double
+  compensation, hash-chain canonicalization, and concurrent journal data loss.
+
+## M3.5 — Hardening before wider adoption
+- Durable `ApprovalStore` — the default is in-memory, so pending approvals do
+  not survive a restart.
+- Authenticated approver identity rather than a client-supplied string.
+- Head-hash anchoring, so tail truncation and wholesale chain rewriting become
+  detectable.
+- Approval expiry and policy versioning in the journal.
 
 ## M4 — Ecosystem (post-launch, driven by feedback)
 - **Typed compensation methods** — auto-bind original tool parameters and result

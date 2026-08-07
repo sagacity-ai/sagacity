@@ -12,12 +12,23 @@ product. Priorities: failure-path coverage > happy-path coverage.
 - Compensation ordering: strict reverse order, skip non-executed entries,
   continue-on-compensation-failure policy.
 
-### 2. Integration (Testcontainers Postgres)
-- Journal writes are atomic with tool outcome recording.
-- Concurrent sagas don't interleave journals (per-saga ordering).
-- Schema migration idempotency (starter's auto-init).
+### 2. Integration (Testcontainers Postgres) — 11 tests
+- Chain verifies after a real round-trip through Postgres.
+- Timestamp precision survives the round-trip (microseconds, not nanoseconds).
+- A direct SQL `UPDATE` is detected by chain verification.
+- Payloads containing the old `|` delimiter, and unicode, still verify.
+- Concurrent appends produce a contiguous, gap-free, verifiable chain.
 
-### 3. Crash tests (the signature suite)
+That last one earned its keep: it found 70 of 80 concurrent appends being
+silently dropped, which 48 green unit tests had missed. H2 in PostgreSQL mode
+cannot substitute for real Postgres here.
+
+!!! note "Status as of 0.1.0"
+    Layers 1 and 2 exist: 75 unit tests and 11 Testcontainers integration tests
+    against real Postgres, run on every push. The crash suite below is
+    **designed but not yet built** — treat it as the plan, not the state.
+
+### 3. Crash tests (the signature suite, not yet built)
 The demo agent runs in a **separate JVM** (forked process). Test harness:
 1. Start saga; wait for journal to show step N EXECUTED.
 2. `kill -9` the forked JVM (SIGKILL — no shutdown hooks).
