@@ -29,6 +29,12 @@
         <!-- Demos, not a published artifact -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
+        <!--
+          maven.deploy.skip alone does NOT keep a module out of the Central
+          bundle - central-publishing-maven-plugin collects the whole reactor
+          and has its own switch. Without this, this module ends up published.
+        -->
+        <skipPublishing>true</skipPublishing>
         <exec.mainClass>dev.sagacity.examples.PlaceOrderDemo</exec.mainClass>
     </properties>
 
