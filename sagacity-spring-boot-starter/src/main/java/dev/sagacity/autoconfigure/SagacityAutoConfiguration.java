@@ -12,6 +12,7 @@ import dev.sagacity.springai.Sagacity;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
@@ -49,6 +50,24 @@ public class SagacityAutoConfiguration {
     @ConditionalOnMissingBean
     public Sagacity sagacity(SideEffectJournal journal, ApprovalStore approvalStore) {
         return Sagacity.create(journal, approvalStore);
+    }
+
+    /**
+     * Registers the approval REST endpoints.
+     *
+     * <p>The controller must be declared here rather than relying on its own
+     * {@code @RestController} stereotype: {@code dev.sagacity.autoconfigure} is
+     * not on a consuming application's component-scan path, so nothing would
+     * ever instantiate it and every documented {@code /sagacity/**} endpoint
+     * would 404.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnProperty(prefix = "sagacity", name = "approval-endpoints-enabled",
+            havingValue = "true", matchIfMissing = true)
+    public SagacityApprovalController sagacityApprovalController(Sagacity sagacity) {
+        return new SagacityApprovalController(sagacity);
     }
 
     private void initSchema(DataSource dataSource) {

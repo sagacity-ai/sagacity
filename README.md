@@ -4,6 +4,8 @@
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.x-green.svg)](https://spring.io/projects/spring-ai)
 [![Build](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml/badge.svg)](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.sumitvairagar/sagacity-spring-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.sumitvairagar/sagacity-spring-boot-starter)
+[![Docs](https://img.shields.io/badge/docs-sumitvairagar.github.io%2Fsagacity-blue.svg)](https://sumitvairagar.github.io/sagacity/)
 [![Tests](https://img.shields.io/badge/tests-75%20unit%20%2B%2011%20IT-brightgreen.svg)]()
 
 **The SAGA pattern for AI agents.** Declarative compensation for Spring AI tool calls, with a tamper-evident audit trail.
@@ -60,6 +62,18 @@ SagaResult<ChatResponse> result = sagacity.saga("place-order-123",
 // IRREVERSIBLE tools → suspended until human approves
 // Every step journaled with tamper-evident hash chain
 ```
+
+## Documentation
+
+Full documentation: **[sumitvairagar.github.io/sagacity](https://sumitvairagar.github.io/sagacity/)**
+
+| | |
+|---|---|
+| [Getting started](https://sumitvairagar.github.io/sagacity/getting-started/) | Working example in five minutes |
+| [Approval gates](https://sumitvairagar.github.io/sagacity/guides/approval-gates/) | Human sign-off for irreversible tools |
+| [Production checklist](https://sumitvairagar.github.io/sagacity/guides/production-checklist/) | Read before pointing this at real money |
+| [Threat model](https://sumitvairagar.github.io/sagacity/concepts/threat-model/) | What the audit trail does and does not defend against |
+| [REST API](https://sumitvairagar.github.io/sagacity/reference/rest-api/) | Endpoint reference |
 
 ## Quick Start
 

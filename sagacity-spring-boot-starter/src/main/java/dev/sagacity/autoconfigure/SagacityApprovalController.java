@@ -11,7 +11,6 @@ import dev.sagacity.core.saga.SagaStatus;
 import dev.sagacity.springai.Sagacity;
 import dev.sagacity.springai.SagaResult;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,8 +34,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/sagacity")
-@ConditionalOnProperty(prefix = "sagacity", name = "approval-endpoints-enabled",
-        havingValue = "true", matchIfMissing = true)
 public class SagacityApprovalController {
 
     private final Sagacity sagacity;

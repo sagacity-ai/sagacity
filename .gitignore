@@ -22,3 +22,6 @@ Thumbs.db
 
 # Launch posts (private)
 docs/LAUNCH-POSTS.md
+
+# MkDocs build output
+site/
