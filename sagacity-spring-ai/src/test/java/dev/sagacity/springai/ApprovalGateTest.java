@@ -46,7 +46,8 @@ class ApprovalGateTest {
 
 		assertThat(decision.approved()).isTrue();
 		assertThat(decision.approverIdentity()).isEqualTo("admin@company.com");
-		assertThat(sagacity.pendingApprovals()).isEmpty();
+		// approve() journals but does NOT remove from store — resumeSaga() does that
+		assertThat(sagacity.pendingApprovals()).hasSize(1);
 
 		// Check journal has the approval recorded
 		var entries = sagacity.journal().entries("saga-1");

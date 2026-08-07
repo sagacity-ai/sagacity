@@ -14,6 +14,7 @@ import dev.sagacity.core.audit.AuditExporter;
 import dev.sagacity.core.compensation.CompensationRegistry;
 import dev.sagacity.core.compensation.CompensationReport;
 import dev.sagacity.core.compensation.CompensationRunner;
+import dev.sagacity.core.journal.HashChain;
 import dev.sagacity.core.journal.InMemorySideEffectJournal;
 import dev.sagacity.core.journal.Phase;
 import dev.sagacity.core.journal.SideEffectJournal;
@@ -127,12 +128,14 @@ public final class Sagacity {
 
 	/**
 	 * Approve a pending IRREVERSIBLE tool execution. Journals the approval with the
-	 * approver's identity.
+	 * approver's identity. Does NOT remove the approval from the store — that
+	 * happens in {@link #resumeSaga} after payload hash verification.
 	 */
 	public ApprovalDecision approve(String sagaId, long journalSeq, String approverIdentity) {
 		this.journal.append(sagaId, "approval-gate", Phase.APPROVED, "seq=" + journalSeq,
 				"approver=" + approverIdentity);
-		this.approvalStore.remove(sagaId, journalSeq);
+		// Intentionally NOT removing from store here — resumeSaga verifies the
+		// payload hash and removes the request after successful verification.
 		return new ApprovalDecision(sagaId, journalSeq, true, approverIdentity, Instant.now());
 	}
 
@@ -146,6 +149,71 @@ public final class Sagacity {
 		this.approvalStore.remove(sagaId, journalSeq);
 		this.runner.compensate(sagaId);
 		return new ApprovalDecision(sagaId, journalSeq, false, approverIdentity, Instant.now());
+	}
+
+	/**
+	 * Resume a saga after a human has approved an IRREVERSIBLE tool, executing it
+	 * with the supplied live payload. Performs stale-approval detection: if the
+	 * live payload's SHA-256 hash does not match the hash recorded when the approval
+	 * was originally requested, execution is rejected — even though a valid approval
+	 * exists — and compensation runs.
+	 *
+	 * <p>This prevents a class of attack where the model re-plans between the time
+	 * a human approves and the time the tool runs, substituting a different
+	 * (potentially more dangerous) payload for the one the approver saw.
+	 *
+	 * <p><strong>Pass the unwrapped delegate callback</strong>, not the Sagacity-wrapped
+	 * one, to avoid re-triggering the approval gate.
+	 *
+	 * @param sagaId           the saga to resume
+	 * @param journalSeq       the journal sequence of the AWAITING_APPROVAL entry
+	 * @param livePayload      the actual tool input that will be executed
+	 * @param delegateCallback the raw (unwrapped) ToolCallback to execute
+	 * @return SagaResult reflecting COMPLETED or COMPENSATED
+	 */
+	public SagaResult<String> resumeSaga(String sagaId, long journalSeq,
+			String livePayload, org.springframework.ai.tool.ToolCallback delegateCallback) {
+
+		// Locate the original approval request (still in store until we remove it)
+		var maybeRequest = this.approvalStore.find(sagaId, journalSeq);
+		if (maybeRequest.isEmpty()) {
+			throw new IllegalStateException(
+					"No pending approval found for saga=" + sagaId + " seq=" + journalSeq);
+		}
+
+		ApprovalRequest request = maybeRequest.get();
+
+		// Stale-approval check — hash the live payload and compare
+		String liveHash = HashChain.sha256(livePayload);
+		if (!request.inputHash().isEmpty() && !liveHash.equals(request.inputHash())) {
+			// Payload has changed since approval was granted — reject and compensate
+			this.journal.append(sagaId, request.toolName(), Phase.REJECTED,
+					"seq=" + journalSeq, "stale-approval: payload changed since approval was granted");
+			this.approvalStore.remove(sagaId, journalSeq);
+			this.runner.compensate(sagaId);
+			return SagaResult.compensated(sagaId,
+					this.runner.compensate(sagaId),
+					new IllegalStateException(
+							"Stale approval rejected: payload changed since approval was granted"));
+		}
+
+		// Payload matches — safe to execute
+		this.approvalStore.remove(sagaId, journalSeq);
+		this.journal.append(sagaId, request.toolName(), Phase.INTENT, livePayload, "");
+		try {
+			String result = delegateCallback.call(livePayload);
+			this.journal.append(sagaId, request.toolName(), Phase.EXECUTED, livePayload,
+					result != null ? result : "");
+			return SagaResult.completed(sagaId, result);
+		}
+		catch (RuntimeException ex) {
+			Throwable rootCause = ex.getCause() != null ? ex.getCause() : ex;
+			String detail = rootCause.getMessage() != null ? rootCause.getMessage()
+					: rootCause.getClass().getSimpleName();
+			this.journal.append(sagaId, request.toolName(), Phase.FAILED, livePayload, detail);
+			this.runner.compensate(sagaId);
+			return SagaResult.compensated(sagaId, this.runner.compensate(sagaId), rootCause);
+		}
 	}
 
 	/** Get all pending approval requests. */

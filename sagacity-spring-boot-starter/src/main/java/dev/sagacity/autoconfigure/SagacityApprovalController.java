@@ -7,6 +7,7 @@ import dev.sagacity.core.approval.ApprovalDecision;
 import dev.sagacity.core.approval.ApprovalRequest;
 import dev.sagacity.core.audit.AuditExporter;
 import dev.sagacity.springai.Sagacity;
+import dev.sagacity.springai.SagaResult;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST endpoints for Sagacity approval workflow and audit.
+ *
+ * <h3>Approval flow</h3>
+ * <ol>
+ *   <li>Agent hits an IRREVERSIBLE tool → saga suspends, approval request created.</li>
+ *   <li>Operator calls {@code GET /sagacity/approvals} to see what is pending.</li>
+ *   <li>Operator calls {@code POST /sagacity/approve/{sagaId}/{seq}} to grant approval.</li>
+ *   <li>System calls {@code POST /sagacity/resume/{sagaId}/{seq}} with the live payload
+ *       to actually execute the tool. Payload hash is verified against the hash stored
+ *       at approval-request time — stale approval (payload changed) is rejected.</li>
+ * </ol>
  */
 @RestController
 @RequestMapping("/sagacity")
-@ConditionalOnProperty(prefix = "sagacity", name = "approval-endpoints-enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "sagacity", name = "approval-endpoints-enabled",
+        havingValue = "true", matchIfMissing = true)
 public class SagacityApprovalController {
 
     private final Sagacity sagacity;
@@ -41,6 +53,13 @@ public class SagacityApprovalController {
         return sagacity.pendingApprovals(sagaId);
     }
 
+    /**
+     * Record human approval for a pending IRREVERSIBLE tool.
+     * Does NOT execute the tool — call /resume after this to execute with
+     * payload hash verification.
+     *
+     * <p>Body: {@code {"approver": "manager@company.com"}}
+     */
     @PostMapping("/approve/{sagaId}/{journalSeq}")
     public ResponseEntity<ApprovalDecision> approve(
             @PathVariable String sagaId,
@@ -51,6 +70,11 @@ public class SagacityApprovalController {
         return ResponseEntity.ok(decision);
     }
 
+    /**
+     * Reject a pending IRREVERSIBLE tool. Triggers compensation of prior steps.
+     *
+     * <p>Body: {@code {"approver": "manager@company.com"}}
+     */
     @PostMapping("/reject/{sagaId}/{journalSeq}")
     public ResponseEntity<ApprovalDecision> reject(
             @PathVariable String sagaId,

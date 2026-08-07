@@ -36,6 +36,22 @@ public final class HashChain {
 	}
 
 	/**
+	 * Computes a standalone SHA-256 hash of a single input string.
+	 * Used to bind an approval to the exact payload it was granted for,
+	 * preventing stale approvals from executing against a different payload.
+	 */
+	public static String sha256(String input) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+			return HexFormat.of().formatHex(hashBytes);
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException("SHA-256 not available", e);
+		}
+	}
+
+	/**
 	 * Verifies the integrity of a journal entry chain.
 	 * Returns true if all hashes are valid, false if tampered.
 	 */
