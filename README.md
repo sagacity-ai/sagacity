@@ -3,7 +3,8 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.x-green.svg)](https://spring.io/projects/spring-ai)
-[![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen.svg)]()
+[![Build](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml/badge.svg)](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml)
+[![Tests](https://img.shields.io/badge/tests-75%20unit%20%2B%2011%20IT-brightgreen.svg)]()
 
 **The SAGA pattern for AI agents.** Declarative compensation for Spring AI tool calls, with a tamper-evident audit trail.
 
@@ -67,7 +68,7 @@ SagaResult<ChatResponse> result = sagacity.saga("place-order-123",
 ```xml
 <!-- Build from source (Maven Central coming soon) -->
 <dependency>
-    <groupId>dev.sagacity</groupId>
+    <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -195,15 +196,32 @@ The starter exposes these endpoints automatically:
 | `GET` | `/sagacity/approvals/{sagaId}` | Pending approvals for a saga |
 | `POST` | `/sagacity/approve/{sagaId}/{seq}` | Approve (body: `{"approver": "admin@co.com"}`) |
 | `POST` | `/sagacity/reject/{sagaId}/{seq}` | Reject + trigger compensation |
+| `POST` | `/sagacity/resume/{sagaId}/{seq}` | Execute an approved tool (body: `{"payload": "..."}`) |
 | `GET` | `/sagacity/audit/{sagaId}` | Export journal as JSON Lines |
 | `GET` | `/sagacity/audit/{sagaId}/verify` | Verify hash chain integrity |
 
-### Example: Approve a pending action
+Approving does not execute. `/approve` records who signed off; `/resume` runs
+the tool and is where the payload is checked against what was approved. Both
+steps are required — `/resume` refuses with `409` if no approval was recorded,
+and refuses again if the payload changed since.
+
+### Example: Approve, then execute
 
 ```bash
+# 1. Record the human decision
 curl -X POST http://localhost:8080/sagacity/approve/order-123/5 \
   -H "Content-Type: application/json" \
   -d '{"approver": "manager@company.com"}'
+
+# 2. Execute, binding to the exact payload that was approved
+curl -X POST http://localhost:8080/sagacity/resume/order-123/5 \
+  -H "Content-Type: application/json" \
+  -d '{"payload": "{\"amount\":100,\"to\":\"alice\"}"}'
+# {"sagaId":"order-123","status":"COMPLETED","result":"\"transfer-ok\""}
+
+# A payload that differs from the approved one is refused, not executed:
+# 409 {"sagaId":"order-123","status":"COMPENSATED",
+#      "reason":"Stale approval rejected: payload changed since approval was granted"}
 ```
 
 ### Example: Verify audit trail

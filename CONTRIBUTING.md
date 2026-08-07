@@ -18,9 +18,25 @@ cd sagacity
 # Build (requires Java 17+)
 mvn clean install
 
-# Run tests
+# Run unit tests (fast, no Docker needed)
 mvn test
+
+# Run everything, including the real-Postgres integration tests
+mvn verify
 ```
+
+### Integration tests
+
+`*IT` tests run under `mvn verify` and use Testcontainers to start a real
+Postgres. They cover what the H2-based unit tests structurally cannot —
+timestamp precision through a real round-trip, and concurrent appends.
+
+**They need Docker running.** Without a reachable daemon Testcontainers
+*skips* them rather than failing, so `mvn verify` still goes green while
+testing nothing. If you are changing anything in `PostgresSideEffectJournal`
+or `HashChain`, start Docker first and confirm the run reports
+`Tests run: 11` for `PostgresSideEffectJournalIT`. CI enforces this and
+fails the build if the ITs are skipped.
 
 ## Code Style
 

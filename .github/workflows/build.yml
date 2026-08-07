@@ -1,0 +1,98 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and integration-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # GitHub-hosted ubuntu runners have a Docker daemon already running, which
+      # is what the Testcontainers ITs need. Without it Testcontainers silently
+      # skips them — and these are the tests that catch what the H2 unit tests
+      # structurally cannot, so a skip here would be a false green.
+      - name: Confirm Docker is available for Testcontainers
+        run: docker info > /dev/null
+
+      # `verify` runs surefire (*Test) and then failsafe (*IT), including the
+      # real-Postgres journal tests, and writes the aggregate coverage report.
+      - name: Build, test and integration-test
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      # Testcontainers skips rather than fails when Docker is missing, so assert
+      # the ITs actually ran. Catches a silently-degraded pipeline.
+      - name: Assert integration tests were not skipped
+        run: |
+          report=sagacity-core/target/failsafe-reports/dev.sagacity.core.journal.PostgresSideEffectJournalIT.txt
+          if [ ! -f "$report" ]; then
+            echo "::error::No failsafe report — the Postgres ITs did not run."
+            exit 1
+          fi
+          if grep -qE 'Skipped: [1-9]' "$report"; then
+            echo "::error::Postgres ITs were skipped:"
+            cat "$report"
+            exit 1
+          fi
+          cat "$report"
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          csv=sagacity-coverage/target/site/jacoco-aggregate/jacoco.csv
+          [ -f "$csv" ] || exit 0
+          awk -F, 'NR>1 {im+=$4; ic+=$5; bm+=$6; bc+=$7} END {
+            printf "### Coverage\n\n| Metric | Covered |\n|---|---|\n"
+            printf "| Instructions | %.1f%% (%d/%d) |\n", ic*100/(im+ic), ic, im+ic
+            printf "| Branches | %.1f%% (%d/%d) |\n", bc*100/(bm+bc), bc, bm+bc
+          }' "$csv" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+          retention-days: 7
+
+  release-build:
+    name: Release artifacts build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Proves the release profile still builds sources and javadoc jars before
+      # release day. Javadoc runs with doclint, which fails on malformed HTML —
+      # exactly the kind of thing that otherwise surfaces mid-publish.
+      # GPG signing is skipped: no key on CI, and signing is not what breaks.
+      - name: Build release artifacts (unsigned)
+        run: >
+          mvn --batch-mode --no-transfer-progress -Prelease clean install
+          -DskipTests -Dgpg.skip=true

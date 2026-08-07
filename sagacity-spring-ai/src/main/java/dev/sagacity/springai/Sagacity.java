@@ -44,6 +44,9 @@ public final class Sagacity {
 
 	private final AuditExporter auditExporter;
 
+	/** Raw, undecorated callbacks by tool name — populated by {@link #wrap}. */
+	private final java.util.Map<String, ToolCallback> delegates = new java.util.concurrent.ConcurrentHashMap<>();
+
 	private Sagacity(SideEffectJournal journal, ApprovalStore approvalStore) {
 		this.journal = journal;
 		this.approvalStore = approvalStore;
@@ -80,6 +83,9 @@ public final class Sagacity {
 			for (ToolCallback callback : callbacks) {
 				Reversibility rev = CompensationScanner.reversibilityFor(toolBean,
 						callback.getToolDefinition().name(), this.registry);
+				// Keep the raw callback: resuming an approved tool must call the
+				// undecorated one, or the approval gate fires a second time.
+				this.delegates.put(callback.getToolDefinition().name(), callback);
 				wrapped.add(new SagacityToolCallback(callback, this.journal, this.approvalStore, rev));
 			}
 		}
@@ -172,7 +178,7 @@ public final class Sagacity {
 	 * @return SagaResult reflecting COMPLETED or COMPENSATED
 	 */
 	public SagaResult<String> resumeSaga(String sagaId, long journalSeq,
-			String livePayload, org.springframework.ai.tool.ToolCallback delegateCallback) {
+			String livePayload, ToolCallback delegateCallback) {
 
 		// Locate the original approval request (still in store until we remove it)
 		var maybeRequest = this.approvalStore.find(sagaId, journalSeq);
@@ -183,18 +189,31 @@ public final class Sagacity {
 
 		ApprovalRequest request = maybeRequest.get();
 
-		// Stale-approval check — hash the live payload and compare
+		// A pending request is not an approval. approve() leaves the request in the
+		// store so this method can verify the payload, which means store state alone
+		// cannot distinguish "approved" from "never looked at". Require the journaled
+		// APPROVED decision before going any further.
+		if (approverFor(sagaId, journalSeq).isEmpty()) {
+			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+					"no approval recorded for this saga/seq",
+					"Tool execution refused: no human approval recorded for saga=" + sagaId
+							+ " seq=" + journalSeq);
+		}
+
+		// Stale-approval check — hash the live payload and compare. An absent hash is
+		// treated as a failed check, not a skipped one: a request that never recorded
+		// what was approved cannot be shown to match.
 		String liveHash = HashChain.sha256(livePayload);
-		if (!request.inputHash().isEmpty() && !liveHash.equals(request.inputHash())) {
+		if (request.inputHash().isEmpty()) {
+			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+					"approval carries no payload hash — cannot verify",
+					"Approval rejected: request has no recorded payload hash to verify against");
+		}
+		if (!liveHash.equals(request.inputHash())) {
 			// Payload has changed since approval was granted — reject and compensate
-			this.journal.append(sagaId, request.toolName(), Phase.REJECTED,
-					"seq=" + journalSeq, "stale-approval: payload changed since approval was granted");
-			this.approvalStore.remove(sagaId, journalSeq);
-			this.runner.compensate(sagaId);
-			return SagaResult.compensated(sagaId,
-					this.runner.compensate(sagaId),
-					new IllegalStateException(
-							"Stale approval rejected: payload changed since approval was granted"));
+			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+					"stale-approval: payload changed since approval was granted",
+					"Stale approval rejected: payload changed since approval was granted");
 		}
 
 		// Payload matches — safe to execute
@@ -211,9 +230,60 @@ public final class Sagacity {
 			String detail = rootCause.getMessage() != null ? rootCause.getMessage()
 					: rootCause.getClass().getSimpleName();
 			this.journal.append(sagaId, request.toolName(), Phase.FAILED, livePayload, detail);
-			this.runner.compensate(sagaId);
-			return SagaResult.compensated(sagaId, this.runner.compensate(sagaId), rootCause);
+			CompensationReport report = this.runner.compensate(sagaId);
+			return SagaResult.compensated(sagaId, report, rootCause);
 		}
+	}
+
+	/**
+	 * Resume an approved tool using the callback registered by {@link #wrap} for
+	 * the tool named in the approval request. Same verification as the
+	 * four-argument form — this overload only saves the caller from holding on to
+	 * the undecorated callback, which is what lets the REST layer resume at all.
+	 *
+	 * @throws IllegalStateException if no approval is pending, or if the tool was
+	 *                               never registered through {@link #wrap}
+	 */
+	public SagaResult<String> resumeSaga(String sagaId, long journalSeq, String livePayload) {
+		ApprovalRequest request = this.approvalStore.find(sagaId, journalSeq)
+			.orElseThrow(() -> new IllegalStateException(
+					"No pending approval found for saga=" + sagaId + " seq=" + journalSeq));
+
+		ToolCallback delegate = this.delegates.get(request.toolName());
+		if (delegate == null) {
+			throw new IllegalStateException("Tool '" + request.toolName()
+					+ "' is not registered with this Sagacity instance — was it passed to wrap()?");
+		}
+		return resumeSaga(sagaId, journalSeq, livePayload, delegate);
+	}
+
+	/**
+	 * Journals a REJECTED decision, drops the pending request, and compensates the
+	 * saga exactly once. Compensation is not idempotent — {@link CompensationRunner}
+	 * re-runs every EXECUTED effect it finds — so the report must come from a single
+	 * call, never from a second one made while building the result.
+	 */
+	private SagaResult<String> rejectAndCompensate(String sagaId, long journalSeq, String toolName,
+			String journalDetail, String failureMessage) {
+		this.journal.append(sagaId, toolName, Phase.REJECTED, "seq=" + journalSeq, journalDetail);
+		this.approvalStore.remove(sagaId, journalSeq);
+		CompensationReport report = this.runner.compensate(sagaId);
+		return SagaResult.compensated(sagaId, report, new IllegalStateException(failureMessage));
+	}
+
+	/**
+	 * Returns the identity that approved this saga/seq, or empty if no APPROVED
+	 * decision was journaled. Reads the journal rather than a side table so the
+	 * decision that gates execution is the same one covered by the hash chain.
+	 */
+	private java.util.Optional<String> approverFor(String sagaId, long journalSeq) {
+		String seqMarker = "seq=" + journalSeq;
+		return this.journal.entries(sagaId)
+			.stream()
+			.filter(entry -> entry.phase() == Phase.APPROVED && seqMarker.equals(entry.input()))
+			.map(entry -> entry.payload().startsWith("approver=")
+					? entry.payload().substring("approver=".length()) : entry.payload())
+			.findFirst();
 	}
 
 	/** Get all pending approval requests. */
