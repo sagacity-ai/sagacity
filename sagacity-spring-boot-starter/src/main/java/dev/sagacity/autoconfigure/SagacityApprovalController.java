@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * REST endpoints for Sagacity approval workflow and audit.
  *
- * <h3>Approval flow</h3>
+ * <h2>Approval flow</h2>
  * <ol>
  *   <li>Agent hits an IRREVERSIBLE tool → saga suspends, approval request created.</li>
  *   <li>Operator calls {@code GET /sagacity/approvals} to see what is pending.</li>

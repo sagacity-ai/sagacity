@@ -14,7 +14,7 @@ import java.util.List;
  * previousHash, sagaId, seq, toolName, phase, input, payload and timestamp.
  * The first entry in a saga uses a zero-hash as the previous.
  *
- * <h3>Why length prefixes</h3>
+ * <h2>Why length prefixes</h2>
  * <p>Tamper evidence only holds if one entry maps to exactly one preimage.
  * Joining fields with a delimiter does not give that when the fields are tool
  * arguments and results, which can contain any character including the
@@ -23,7 +23,7 @@ import java.util.List;
  * every field with its UTF-8 byte length makes the encoding unambiguous, so no
  * choice of field contents can forge another entry's hash.
  *
- * <h3>Timestamp precision</h3>
+ * <h2>Timestamp precision</h2>
  * <p>Timestamps are canonicalized to microseconds before hashing. Postgres
  * {@code TIMESTAMP} stores microseconds, so a nanosecond-precision
  * {@link Instant#now()} would hash one value and read back another, breaking

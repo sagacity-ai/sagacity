@@ -145,6 +145,10 @@ class PostgresSideEffectJournalIT {
 		ExecutorService pool = Executors.newFixedThreadPool(threads);
 		CountDownLatch start = new CountDownLatch(1);
 		CountDownLatch done = new CountDownLatch(threads);
+		// Collected, never swallowed. A dropped append means a side effect that
+		// executed and was never recorded, which is the one failure mode this
+		// journal exists to prevent.
+		List<Throwable> failures = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
 
 		for (int t = 0; t < threads; t++) {
 			final int id = t;
@@ -156,8 +160,8 @@ class PostgresSideEffectJournalIT {
 								"{\"i\":" + i + "}", "ok");
 					}
 				}
-				catch (Exception ignored) {
-					// counted by the assertions below
+				catch (Throwable ex) {
+					failures.add(ex);
 				}
 				finally {
 					done.countDown();
@@ -168,6 +172,8 @@ class PostgresSideEffectJournalIT {
 		start.countDown();
 		assertThat(done.await(60, TimeUnit.SECONDS)).isTrue();
 		pool.shutdownNow();
+
+		assertThat(failures).as("appends must not be dropped under contention").isEmpty();
 
 		List<JournalEntry> entries = this.journal.entries("concurrent-saga");
 		assertThat(entries).hasSize(threads * perThread);

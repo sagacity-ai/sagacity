@@ -4,13 +4,50 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>dev.sagacity</groupId>
+    <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Sagacity</name>
     <description>SAGA semantics for AI agents: declarative compensation for Spring AI tool calls with a tamper-evident audit trail</description>
+    <url>https://github.com/sumitvairagar/sagacity</url>
+
+    <!--
+      groupId is io.github.sumitvairagar rather than dev.sagacity because Central
+      requires a verified namespace and sagacity.dev is not obtainable. Java
+      packages deliberately stay dev.sagacity.* — coordinates can change again
+      later (for example if this moves to spring-ai-community) without breaking
+      a single import in user code.
+    -->
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>sumitvairagar</id>
+            <name>Sumit Vairagar</name>
+            <url>https://github.com/sumitvairagar</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/sumitvairagar/sagacity.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/sumitvairagar/sagacity.git</developerConnection>
+        <url>https://github.com/sumitvairagar/sagacity</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/sumitvairagar/sagacity/issues</url>
+    </issueManagement>
 
     <modules>
         <module>sagacity-core</module>
@@ -36,17 +73,21 @@
         <assertj.version>3.26.3</assertj.version>
         <jacoco.version>0.8.12</jacoco.version>
         <maven-failsafe.version>3.2.5</maven-failsafe.version>
+        <maven-source.version>3.3.1</maven-source.version>
+        <maven-javadoc.version>3.11.2</maven-javadoc.version>
+        <maven-gpg.version>3.2.7</maven-gpg.version>
+        <central-publishing.version>0.7.0</central-publishing.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>dev.sagacity</groupId>
+                <groupId>io.github.sumitvairagar</groupId>
                 <artifactId>sagacity-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>dev.sagacity</groupId>
+                <groupId>io.github.sumitvairagar</groupId>
                 <artifactId>sagacity-spring-ai</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -146,4 +187,84 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          Everything Central requires that a normal build should not pay for:
+          sources jar, javadoc jar and GPG signatures. Activate with -Prelease.
+
+          Publishing:
+            mvn -Prelease clean deploy
+          Needs a GPG key whose public half is on a keyserver, and a Central
+          Portal user token in ~/.m2/settings.xml under <server><id>central</id>.
+        -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- Fail the release on broken javadoc, not on missing tags -->
+                            <doclint>all,-missing</doclint>
+                            <quiet>true</quiet>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <!--
+                              Leaves the bundle in the Portal for a human to
+                              review and release. Flip to true only once a
+                              release has gone through cleanly by hand —
+                              published coordinates can never be taken back.
+                            -->
+                            <autoPublish>false</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
