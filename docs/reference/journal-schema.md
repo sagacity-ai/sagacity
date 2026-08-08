@@ -52,6 +52,29 @@ Hashing a nanosecond-precision `Instant` would break verification for every
 persisted saga on platforms whose clock is finer than a microsecond. All values
 are UTC.
 
+## The approval request table
+
+```sql
+CREATE TABLE IF NOT EXISTS sagacity_approval_request (
+    saga_id      TEXT        NOT NULL,
+    journal_seq  BIGINT      NOT NULL,
+    tool_name    TEXT        NOT NULL,
+    input        TEXT        NOT NULL DEFAULT '',
+    input_hash   CHAR(64)    NOT NULL,
+    created_at   TIMESTAMP   NOT NULL,
+    PRIMARY KEY (saga_id, journal_seq)
+);
+```
+
+Holds approvals awaiting a decision, so they survive a restart. Unlike the
+journal this table is **mutable**: rows are deleted once consumed or rejected,
+and re-requesting the same `(saga_id, journal_seq)` replaces rather than
+duplicating.
+
+It is working state, not evidence. The durable record of what was proposed,
+approved and executed lives in the journal, where the hash chain covers it.
+`input_hash` here is what a resume is verified against.
+
 ## Make it append-only
 
 The table is append-only by intent, not by permission. Enforce it:

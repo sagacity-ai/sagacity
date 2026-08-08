@@ -38,8 +38,8 @@ Spring AI contribution track. "Done" = tested + documented, not just working.
   compensation, hash-chain canonicalization, and concurrent journal data loss.
 
 ## M3.5 — Hardening before wider adoption
-- Durable `ApprovalStore` — the default is in-memory, so pending approvals do
-  not survive a restart.
+- ~~Durable `ApprovalStore`~~ ✅ `PostgresApprovalStore`, selected automatically
+  when a `DataSource` is present.
 - Authenticated approver identity rather than a client-supplied string.
 - Head-hash anchoring, so tail truncation and wholesale chain rewriting become
   detectable.

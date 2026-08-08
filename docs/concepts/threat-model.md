@@ -58,6 +58,15 @@ entry's hash preimage.
 **Defended**, by length-prefixed field encoding. See
 [the hash chain](hash-chain.md#why-fields-are-length-prefixed).
 
+### Restart with approvals pending
+
+**Defended when a `DataSource` is configured** — `PostgresApprovalStore` persists
+pending requests, including the approved payload hash.
+
+Without one, the in-memory fallback loses them. This is availability rather than
+integrity: nothing executes that should not, but in-flight approvals become
+unresumable and the operator must restart those sagas.
+
 ### Process crash mid-effect
 
 An effect executes but its `EXECUTED` row never commits.

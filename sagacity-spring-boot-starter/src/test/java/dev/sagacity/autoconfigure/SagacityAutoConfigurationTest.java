@@ -55,6 +55,29 @@ class SagacityAutoConfigurationTest {
     }
 
     @Test
+    void usesDurableApprovalStoreWhenDataSourceAvailable() {
+        // An in-memory store loses pending approvals on restart, stranding every
+        // in-flight irreversible tool: the journal still shows AWAITING_APPROVAL
+        // but the request holding the approved payload hash is gone.
+        contextRunner
+                .withPropertyValues(
+                        "spring.datasource.url=jdbc:h2:mem:sagacity_approval_test;MODE=PostgreSQL",
+                        "spring.datasource.username=sa"
+                )
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class
+                ))
+                .run(context -> assertThat(context.getBean(ApprovalStore.class))
+                        .isInstanceOf(dev.sagacity.core.approval.PostgresApprovalStore.class));
+    }
+
+    @Test
+    void usesInMemoryApprovalStoreWhenNoDataSource() {
+        contextRunner.run(context -> assertThat(context.getBean(ApprovalStore.class))
+                .isInstanceOf(dev.sagacity.core.approval.InMemoryApprovalStore.class));
+    }
+
+    @Test
     void usesInMemoryJournalWhenNoDataSource() {
         contextRunner.run(context -> {
             assertThat(context.getBean(SideEffectJournal.class))
