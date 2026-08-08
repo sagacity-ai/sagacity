@@ -1,5 +1,18 @@
 # Sagacity — Specification (v0.1 draft)
 
+!!! warning "Historical document"
+    This is the **original design spec, written before implementation**. It is
+    kept because the reasoning behind several decisions is recorded nowhere else
+    — particularly the integration-point analysis in section 5.
+
+    Several details no longer match the code: the baseline is Spring Boot 4.0.x
+    (Spring AI 2.0.0 requires Spring Framework 7), persistence is plain JDBC
+    rather than Spring Data JDBC, there is no `saga_instance` table, and
+    `approve()` records a decision without executing — `resumeSaga()` executes,
+    after verifying the payload hash.
+
+    For what the code does today, read [Architecture](../concepts/architecture.md).
+
 **One-liner:** Declarative compensation (SAGA pattern) for AI agent tool calls,
 with a tamper-evident audit trail. Plugs into Spring AI.
 

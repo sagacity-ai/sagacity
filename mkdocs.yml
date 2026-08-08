@@ -74,6 +74,7 @@ nav:
       - Journal schema: reference/journal-schema.md
   - Concepts:
       - The saga model: concepts/saga-model.md
+      - Architecture: concepts/architecture.md
       - The hash chain: concepts/hash-chain.md
       - Threat model: concepts/threat-model.md
   - About:
