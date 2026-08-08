@@ -11,27 +11,36 @@ theme:
   features:
     - navigation.instant
     - navigation.tracking
+    - navigation.tabs
     - navigation.sections
+    - navigation.indexes
     - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.tabs.link
     - content.code.copy
     - content.action.edit
     - search.suggest
     - toc.follow
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: teal
-      accent: teal
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: teal
-      accent: teal
+      scheme: sagacity-dark
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: sagacity-light
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
 
 # docs/LAUNCH-POSTS.md is a gitignored private draft. MkDocs would otherwise
 # build every .md under docs/ into the public site, including that one.
@@ -42,6 +51,7 @@ exclude_docs: |
 
 markdown_extensions:
   - admonition
+  - md_in_html
   - attr_list
   - def_list
   - tables

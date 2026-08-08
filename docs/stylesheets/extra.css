@@ -1,0 +1,313 @@
+/*
+ * Sagacity documentation theme.
+ *
+ * The palette is taken from docs/saga-flow.svg, which already established the
+ * project's identity: green for a compensated effect, amber for awaiting
+ * approval, red for failure. Those three colours mean something specific here,
+ * so they are used consistently and not decoratively.
+ */
+
+/* ── Palette ─────────────────────────────────────────────────────────── */
+
+[data-md-color-scheme="sagacity-light"] {
+  --sg-green: #1a7f37;
+  --sg-green-bright: #2da44e;
+  --sg-amber: #9a6700;
+  --sg-red: #cf222e;
+  --sg-blue: #0969da;
+
+  --md-primary-fg-color: #0d1117;
+  --md-primary-fg-color--light: #21262d;
+  --md-primary-fg-color--dark: #010409;
+  --md-primary-bg-color: #ffffff;
+  --md-accent-fg-color: var(--sg-green);
+
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: #1f2328;
+  --md-default-fg-color--light: #59636e;
+  --md-default-fg-color--lighter: #818b98;
+
+  --md-typeset-a-color: var(--sg-green);
+  --md-code-bg-color: #f6f8fa;
+  --md-code-fg-color: #1f2328;
+
+  --sg-border: #d1d9e0;
+  --sg-surface: #f6f8fa;
+  --sg-hero-glow: rgba(45, 164, 78, 0.12);
+}
+
+[data-md-color-scheme="sagacity-dark"] {
+  --sg-green: #7ee787;
+  --sg-green-bright: #56d364;
+  --sg-amber: #ffa657;
+  --sg-red: #ff7b72;
+  --sg-blue: #58a6ff;
+
+  --md-primary-fg-color: #0d1117;
+  --md-primary-fg-color--light: #161b22;
+  --md-primary-fg-color--dark: #010409;
+  --md-primary-bg-color: #e6edf3;
+  --md-accent-fg-color: var(--sg-green);
+
+  --md-default-bg-color: #0d1117;
+  --md-default-fg-color: #e6edf3;
+  --md-default-fg-color--light: #9198a1;
+  --md-default-fg-color--lighter: #656c76;
+
+  --md-typeset-a-color: var(--sg-green);
+  --md-code-bg-color: #161b22;
+  --md-code-fg-color: #e6edf3;
+
+  --md-footer-bg-color: #010409;
+  --md-footer-bg-color--dark: #010409;
+
+  --sg-border: #30363d;
+  --sg-surface: #161b22;
+  --sg-hero-glow: rgba(126, 231, 135, 0.10);
+}
+
+/* ── Typography ──────────────────────────────────────────────────────── */
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.md-typeset {
+  font-size: 0.78rem;
+  line-height: 1.72;
+}
+
+.md-typeset h1 {
+  font-weight: 680;
+  letter-spacing: -0.022em;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h2 {
+  font-weight: 640;
+  letter-spacing: -0.017em;
+  margin-top: 2.4em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--sg-border);
+}
+
+.md-typeset h3 {
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+/* Tabular figures keep numbers in tables from jittering between rows */
+.md-typeset table:not([class]) {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  border: 1px solid var(--sg-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--sg-surface);
+  font-weight: 620;
+}
+
+.md-typeset table:not([class]) td,
+.md-typeset table:not([class]) th {
+  border-bottom: 1px solid var(--sg-border);
+}
+
+/* ── Code ────────────────────────────────────────────────────────────── */
+
+.md-typeset pre > code {
+  border-radius: 8px;
+  border: 1px solid var(--sg-border);
+}
+
+.md-typeset code {
+  border-radius: 5px;
+  font-size: 0.85em;
+}
+
+.md-typeset a > code {
+  color: inherit;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.md-header {
+  border-bottom: 1px solid var(--sg-border);
+  box-shadow: none;
+}
+
+.md-tabs {
+  border-bottom: 1px solid var(--sg-border);
+}
+
+/* ── Admonitions: reuse the journal's own colour language ────────────── */
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 8px;
+  border-width: 1px;
+  border-left-width: 3px;
+  box-shadow: none;
+  font-size: 0.74rem;
+}
+
+.md-typeset .admonition.danger,
+.md-typeset .admonition.warning {
+  border-left-color: var(--sg-red);
+}
+
+.md-typeset .admonition.note,
+.md-typeset .admonition.tip {
+  border-left-color: var(--sg-green);
+}
+
+/* ── Landing page ────────────────────────────────────────────────────── */
+
+.sg-hero {
+  margin: 0 0 3rem;
+  padding: 3.2rem 0 2.6rem;
+  text-align: center;
+  border-bottom: 1px solid var(--sg-border);
+  background:
+    radial-gradient(ellipse 60% 100% at 50% 0%, var(--sg-hero-glow), transparent 70%);
+}
+
+.sg-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 0 0 0.6rem;
+}
+
+.sg-hero .sg-tagline {
+  font-size: 1rem;
+  color: var(--md-default-fg-color--light);
+  max-width: 34rem;
+  margin: 0 auto 1.8rem;
+  line-height: 1.55;
+}
+
+.sg-hero .sg-tagline strong {
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+}
+
+/*
+ * Markdown wraps the links in a <p>, so the flex container has to be that <p>
+ * rather than .sg-cta itself, or gap and centring do nothing.
+ */
+.sg-cta p {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.md-typeset .sg-cta .md-button {
+  border-radius: 7px;
+  font-weight: 560;
+  font-size: 0.72rem;
+  padding: 0.5em 1.3em;
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+/*
+ * Material's outline button takes its colour from --md-primary-fg-color, which
+ * here is the near-black used by the header — invisible on a dark page. These
+ * need explicit colours.
+ */
+.md-typeset .sg-cta .md-button {
+  color: var(--md-default-fg-color);
+  border-color: var(--sg-border);
+  background: transparent;
+}
+
+.md-typeset .sg-cta .md-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--sg-green);
+  color: var(--sg-green);
+  background: transparent;
+}
+
+.md-typeset .sg-cta .md-button--primary,
+.md-typeset .sg-cta .md-button--primary:hover {
+  background: var(--sg-green);
+  border-color: var(--sg-green);
+  color: #0d1117;
+}
+
+/* Feature grid */
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 2rem 0 2.5rem;
+}
+
+.sg-card {
+  border: 1px solid var(--sg-border);
+  border-radius: 10px;
+  padding: 1.3rem 1.4rem;
+  background: var(--md-default-bg-color);
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+
+.sg-card:hover {
+  border-color: var(--sg-green);
+  transform: translateY(-2px);
+}
+
+.md-typeset .sg-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 640;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.md-typeset .sg-card p {
+  margin: 0 0 0.7rem;
+  font-size: 0.73rem;
+  line-height: 1.62;
+  color: var(--md-default-fg-color--light);
+}
+
+.sg-card .sg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.sg-dot--green { background: var(--sg-green); }
+.sg-dot--amber { background: var(--sg-amber); }
+.sg-dot--blue  { background: var(--sg-blue); }
+
+/* Small caps label used above section breaks on the landing page */
+.sg-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.62rem;
+  font-weight: 660;
+  color: var(--md-default-fg-color--lighter);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────── */
+
+@media screen and (max-width: 44.9375em) {
+  .sg-hero {
+    padding: 2rem 0 1.8rem;
+  }
+  .sg-hero h1 {
+    font-size: 1.85rem;
+  }
+  .sg-hero .sg-tagline {
+    font-size: 0.85rem;
+  }
+}
