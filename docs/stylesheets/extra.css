@@ -16,10 +16,20 @@
   --sg-red: #cf222e;
   --sg-blue: #0969da;
 
-  --md-primary-fg-color: #0d1117;
-  --md-primary-fg-color--light: #21262d;
-  --md-primary-fg-color--dark: #010409;
-  --md-primary-bg-color: #ffffff;
+  /*
+   * The header follows the theme rather than staying dark in both. Material
+   * uses --md-primary-fg-color as the header background and --md-primary-bg-color
+   * as the text on it, so those invert here relative to the dark scheme.
+   *
+   * Keeping this near-black in light mode also made Material's outline buttons
+   * black-on-black, since .md-button inherits it — the variable reaches further
+   * than the header alone.
+   */
+  --md-primary-fg-color: #ffffff;
+  --md-primary-fg-color--light: #f6f8fa;
+  --md-primary-fg-color--dark: #eaeef2;
+  --md-primary-bg-color: #1f2328;
+  --md-primary-bg-color--light: rgba(31, 35, 40, 0.72);
   --md-accent-fg-color: var(--sg-green);
 
   --md-default-bg-color: #ffffff;
@@ -188,6 +198,23 @@ body {
 
 .md-tabs {
   border-bottom: 1px solid var(--sg-border);
+}
+
+/*
+ * With a light header the search field would be white on white. Tint it and
+ * give it an outline so it still reads as an input.
+ */
+[data-md-color-scheme="sagacity-light"] .md-search__form {
+  background-color: var(--sg-surface);
+  border: 1px solid var(--sg-border);
+}
+
+[data-md-color-scheme="sagacity-light"] .md-search__form:hover {
+  background-color: #eaeef2;
+}
+
+[data-md-color-scheme="sagacity-light"] .md-search__input::placeholder {
+  color: var(--md-default-fg-color--light);
 }
 
 /* ── Admonitions: reuse the journal's own colour language ────────────── */
