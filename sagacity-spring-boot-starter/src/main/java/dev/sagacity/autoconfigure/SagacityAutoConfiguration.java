@@ -4,6 +4,7 @@ import javax.sql.DataSource;
 
 import dev.sagacity.core.approval.ApprovalStore;
 import dev.sagacity.core.approval.InMemoryApprovalStore;
+import dev.sagacity.core.approval.PostgresApprovalStore;
 import dev.sagacity.core.journal.InMemorySideEffectJournal;
 import dev.sagacity.core.journal.PostgresSideEffectJournal;
 import dev.sagacity.core.journal.SideEffectJournal;
@@ -25,10 +26,27 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(prefix = "sagacity", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SagacityAutoConfiguration {
 
+    /**
+     * Durable when a {@link DataSource} is present, in-memory otherwise — the
+     * same rule as the journal, and for a sharper reason. An in-memory store
+     * loses pending approvals on restart, which strands every in-flight
+     * irreversible tool: the journal still shows AWAITING_APPROVAL, but the
+     * request holding the approved payload hash is gone and the tool can never
+     * be resumed.
+     */
     @Bean
     @ConditionalOnMissingBean
-    public ApprovalStore sagacityApprovalStore() {
-        return new InMemoryApprovalStore();
+    public ApprovalStore sagacityApprovalStore(
+            org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
+            SagacityProperties properties) {
+        DataSource dataSource = dataSourceProvider.getIfAvailable();
+        if (dataSource == null) {
+            return new InMemoryApprovalStore();
+        }
+        if (properties.isSchemaInit()) {
+            initSchema(dataSource);
+        }
+        return new PostgresApprovalStore(dataSource);
     }
 
     @Bean
@@ -86,6 +104,18 @@ public class SagacityAutoConfiguration {
                 )
             """);
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_journal_saga_id ON side_effect_journal (saga_id)");
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sagacity_approval_request (
+                    saga_id      TEXT        NOT NULL,
+                    journal_seq  BIGINT      NOT NULL,
+                    tool_name    TEXT        NOT NULL,
+                    input        TEXT        NOT NULL DEFAULT '',
+                    input_hash   CHAR(64)    NOT NULL,
+                    created_at   TIMESTAMP   NOT NULL,
+                    PRIMARY KEY (saga_id, journal_seq)
+                )
+            """);
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_approval_saga_id ON sagacity_approval_request (saga_id)");
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize Sagacity schema", e);
         }

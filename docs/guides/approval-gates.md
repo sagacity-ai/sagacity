@@ -170,5 +170,8 @@ execution is covered by the same tamper evidence as everything else.
   [production checklist](production-checklist.md).
 - **No approval expiry.** A request pending for a week is still approvable. If
   that matters, check the `AWAITING_APPROVAL` entry's timestamp yourself.
+- **Pending requests need a `DataSource` to survive a restart.** With one, they
+  are stored in `sagacity_approval_request` automatically; without one they are
+  in memory and a deploy strands them.
 - **No policy versioning.** The journal does not record which approval policy
   was in force at decision time.

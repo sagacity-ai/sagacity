@@ -37,10 +37,16 @@ sagacity.approve(sagaId, seq, authentication.getName());
 
 Without this, the approver field in your audit trail is decorative.
 
-### Use the Postgres journal
+### Use the Postgres journal and approval store
 
-`Sagacity.create()` uses the in-memory journal. It writes no hash chain and
-disappears on restart. Confirm at startup that a `DataSource` is present and
+`Sagacity.create()` uses in-memory implementations of both. The journal writes no
+hash chain, and pending approvals do not survive a restart — a deploy would
+strand every in-flight irreversible tool, because the request holding the
+approved payload hash is gone even though the journal still shows
+`AWAITING_APPROVAL`.
+
+With the starter, supplying a `DataSource` selects `PostgresSideEffectJournal`
+and `PostgresApprovalStore` automatically. Confirm at startup that
 `verifyJournal` does not report *"not hash-chained"*.
 
 ### Make compensations idempotent
@@ -118,6 +124,7 @@ their entries and makes compensation walk backward across both.
 | Limit | Consequence |
 |---|---|
 | No approval expiry | A request pending for weeks is still approvable |
+| Approval requests are not themselves hash-chained | The durable record of a decision is the journal, not the request table |
 | No policy version in the journal | You cannot prove which rules were in force at decision time |
 | No idempotency key passed to tools | Sagacity does not deduplicate at the tool boundary; your tools must |
 | No streaming support | Only synchronous `ChatClient` flows are journaled |

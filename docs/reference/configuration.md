@@ -19,10 +19,10 @@ sagacity:
 
 The starter picks a journal based on what is in the context:
 
-| Condition | Journal |
-|---|---|
-| A `DataSource` bean exists | `PostgresSideEffectJournal` — hash-chained, durable |
-| No `DataSource` | `InMemorySideEffectJournal` — **no hash chain, lost on restart** |
+| Condition | Journal | Approval store |
+|---|---|---|
+| A `DataSource` bean exists | `PostgresSideEffectJournal` — hash-chained, durable | `PostgresApprovalStore` — durable |
+| No `DataSource` | `InMemorySideEffectJournal` — **no hash chain, lost on restart** | `InMemoryApprovalStore` — **lost on restart** |
 
 !!! danger "The fallback is silent"
     Missing the `DataSource` does not fail startup. You get a working system with
@@ -43,11 +43,15 @@ ApprovalStore approvalStore(JdbcTemplate jdbc) {
 }
 ```
 
-!!! warning "The default approval store is in-memory"
-    `InMemoryApprovalStore` is the default regardless of whether a `DataSource`
-    exists. Pending approvals **do not survive a restart** — the journal keeps
-    the `AWAITING_APPROVAL` record, but the request needed to resume is gone.
-    Supply your own `ApprovalStore` bean if approvals must outlive a deploy.
+!!! warning "Without a DataSource, pending approvals die on restart"
+    `InMemoryApprovalStore` is the fallback when no `DataSource` is present. The
+    journal keeps the `AWAITING_APPROVAL` record, but the request holding the
+    approved payload hash is gone — so the saga looks like it is waiting for a
+    human forever and the tool can never be resumed. A deploy during business
+    hours would strand every in-flight approval.
+
+    With a `DataSource`, `PostgresApprovalStore` is selected automatically and
+    pending approvals survive restarts.
 
 ## Schema
 
