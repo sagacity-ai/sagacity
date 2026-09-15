@@ -116,4 +116,81 @@ class SagacityAutoConfigurationTest {
         contextRunner.run(context ->
                 assertThat(context).doesNotHaveBean(SagacityApprovalController.class));
     }
+
+    // ── Cloud journal ─────────────────────────────────────────────────────────
+
+    @Test
+    void usesCloudJournalWhenApiKeyIsConfigured() {
+        contextRunner
+                .withPropertyValues("sagacity.cloud.api-key=test-key-123")
+                .run(context -> {
+                    assertThat(context.getBean(SideEffectJournal.class))
+                            .isInstanceOf(dev.sagacity.core.journal.CloudSideEffectJournal.class);
+                });
+    }
+
+    @Test
+    void cloudJournalTakesPriorityOverPostgresWhenBothConfigured() {
+        // If someone has a DataSource AND a cloud key, cloud wins.
+        contextRunner
+                .withPropertyValues(
+                        "sagacity.cloud.api-key=test-key-123",
+                        "spring.datasource.url=jdbc:h2:mem:sagacity_cloud_test;MODE=PostgreSQL",
+                        "spring.datasource.username=sa"
+                )
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class
+                ))
+                .run(context -> {
+                    assertThat(context.getBean(SideEffectJournal.class))
+                            .isInstanceOf(dev.sagacity.core.journal.CloudSideEffectJournal.class);
+                });
+    }
+
+    @Test
+    void cloudJournalUsesCustomBaseUrlWhenProvided() {
+        // The bean should still be a CloudSideEffectJournal with a custom base URL.
+        // We verify the type — internal URL is not exposed on the interface.
+        contextRunner
+                .withPropertyValues(
+                        "sagacity.cloud.api-key=test-key",
+                        "sagacity.cloud.base-url=https://staging.sagacity.dev"
+                )
+                .run(context -> {
+                    assertThat(context.getBean(SideEffectJournal.class))
+                            .isInstanceOf(dev.sagacity.core.journal.CloudSideEffectJournal.class);
+                });
+    }
+
+    @Test
+    void approvalStoreRemainsPostgresEvenWhenCloudJournalSelected() {
+        // Cloud journal handles the journal. But approval store still prefers Postgres
+        // when a DataSource is present — in-memory approval store loses approvals on restart.
+        contextRunner
+                .withPropertyValues(
+                        "sagacity.cloud.api-key=test-key-123",
+                        "spring.datasource.url=jdbc:h2:mem:sagacity_approval_cloud_test;MODE=PostgreSQL",
+                        "spring.datasource.username=sa"
+                )
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class
+                ))
+                .run(context -> {
+                    assertThat(context.getBean(SideEffectJournal.class))
+                            .isInstanceOf(dev.sagacity.core.journal.CloudSideEffectJournal.class);
+                    assertThat(context.getBean(dev.sagacity.core.approval.ApprovalStore.class))
+                            .isInstanceOf(dev.sagacity.core.approval.PostgresApprovalStore.class);
+                });
+    }
+
+    @Test
+    void cloudJournalNotUsedWhenApiKeyIsBlank() {
+        // Blank api-key = not configured = falls back to in-memory
+        contextRunner
+                .withPropertyValues("sagacity.cloud.api-key=")
+                .run(context -> {
+                    assertThat(context.getBean(SideEffectJournal.class))
+                            .isInstanceOf(dev.sagacity.core.journal.InMemorySideEffectJournal.class);
+                });
+    }
 }
