@@ -77,6 +77,9 @@ Full documentation: **[sumitvairagar.github.io/sagacity](https://sumitvairagar.g
 
 ## Quick Start
 
+> **Want a runnable example in 5 minutes?**
+> Clone [sagacity-quickstart](https://github.com/sumitvairagar/sagacity-quickstart) — a self-contained Spring Boot app that shows compensation and the audit trail in action. Just add your API key and run.
+
 ### 1. Add the dependency
 
 ```xml
