@@ -22,6 +22,9 @@ public class SagacityProperties {
 	/** Cloud journal configuration. Activates when {@code sagacity.cloud.api-key} is set. */
 	private Cloud cloud = new Cloud();
 
+	/** Global retry backoff configuration. Per-tool retries are declared via {@code @Compensable}. */
+	private Retry retry = new Retry();
+
 	public boolean isEnabled() { return enabled; }
 	public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
@@ -33,6 +36,41 @@ public class SagacityProperties {
 
 	public Cloud getCloud() { return cloud; }
 	public void setCloud(Cloud cloud) { this.cloud = cloud; }
+
+	public Retry getRetry() { return retry; }
+	public void setRetry(Retry retry) { this.retry = retry; }
+
+	/**
+	 * Global retry backoff configuration.
+	 *
+	 * <p>Per-tool retry counts and exception whitelists are declared on
+	 * {@code @Compensable(retries=3, retryOn={...})}. This section controls
+	 * the backoff timing shared across all retrying tools.
+	 *
+	 * <pre>
+	 * sagacity:
+	 *   retry:
+	 *     initial-delay-ms: 100      # default
+	 *     backoff-multiplier: 2.0    # default — exponential: 100ms, 200ms, 400ms
+	 * </pre>
+	 */
+	public static class Retry {
+
+		/** Initial backoff delay in milliseconds before the first retry. */
+		private long initialDelayMs = 100L;
+
+		/**
+		 * Exponential backoff multiplier applied per retry.
+		 * Must be >= 1.0. Default 2.0 gives: 100ms, 200ms, 400ms, 800ms...
+		 */
+		private double backoffMultiplier = 2.0;
+
+		public long getInitialDelayMs() { return initialDelayMs; }
+		public void setInitialDelayMs(long initialDelayMs) { this.initialDelayMs = initialDelayMs; }
+
+		public double getBackoffMultiplier() { return backoffMultiplier; }
+		public void setBackoffMultiplier(double backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
+	}
 
 	/**
 	 * Sagacity Cloud journal configuration.

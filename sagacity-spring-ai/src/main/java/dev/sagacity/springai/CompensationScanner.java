@@ -9,6 +9,7 @@ import dev.sagacity.core.annotation.Compensable;
 import dev.sagacity.core.compensation.CompensationContext;
 import dev.sagacity.core.compensation.CompensationHandler;
 import dev.sagacity.core.compensation.CompensationRegistry;
+import dev.sagacity.core.retry.RetryPolicy;
 import org.springframework.ai.tool.annotation.Tool;
 
 /**
@@ -25,19 +26,40 @@ final class CompensationScanner {
 	static Reversibility reversibilityFor(Object toolBean, String toolName, CompensationRegistry registry) {
 		for (java.lang.reflect.Method method : toolBean.getClass().getDeclaredMethods()) {
 			Compensable compensable = method.getAnnotation(Compensable.class);
-			if (compensable == null) {
-				continue;
-			}
+			if (compensable == null) continue;
 			Tool toolAnnotation = method.getAnnotation(Tool.class);
-			if (toolAnnotation == null) {
-				continue;
-			}
+			if (toolAnnotation == null) continue;
 			String name = !toolAnnotation.name().isEmpty() ? toolAnnotation.name() : method.getName();
 			if (name.equals(toolName)) {
 				return compensable.reversibility();
 			}
 		}
-		return Reversibility.COMPENSATABLE; // default
+		return Reversibility.COMPENSATABLE;
+	}
+
+	/**
+	 * Builds the {@link RetryPolicy} declared on the {@code @Compensable} annotation
+	 * for the given tool name. Returns {@link RetryPolicy#NONE} if the tool has no
+	 * {@code @Compensable}, or if no retries are declared.
+	 */
+	static RetryPolicy retryPolicyFor(Object toolBean, String toolName,
+			long globalInitialDelayMs, double globalBackoffMultiplier) {
+		for (java.lang.reflect.Method method : toolBean.getClass().getDeclaredMethods()) {
+			Compensable compensable = method.getAnnotation(Compensable.class);
+			if (compensable == null) continue;
+			Tool toolAnnotation = method.getAnnotation(Tool.class);
+			if (toolAnnotation == null) continue;
+			String name = !toolAnnotation.name().isEmpty() ? toolAnnotation.name() : method.getName();
+			if (!name.equals(toolName)) continue;
+
+			int retries = compensable.retries();
+			Class<? extends Throwable>[] retryOn = compensable.retryOn();
+			if (retries <= 0 || retryOn.length == 0) {
+				return RetryPolicy.NONE;
+			}
+			return new RetryPolicy(retries + 1, retryOn, globalInitialDelayMs, globalBackoffMultiplier);
+		}
+		return RetryPolicy.NONE;
 	}
 
 	static void scan(Object toolBean, CompensationRegistry registry) {

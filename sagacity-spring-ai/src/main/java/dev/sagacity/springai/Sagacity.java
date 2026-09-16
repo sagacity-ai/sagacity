@@ -18,6 +18,7 @@ import dev.sagacity.core.journal.HashChain;
 import dev.sagacity.core.journal.InMemorySideEffectJournal;
 import dev.sagacity.core.journal.Phase;
 import dev.sagacity.core.journal.SideEffectJournal;
+import dev.sagacity.core.retry.RetryPolicy;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 
@@ -47,24 +48,47 @@ public final class Sagacity {
 	/** Raw, undecorated callbacks by tool name — populated by {@link #wrap}. */
 	private final java.util.Map<String, ToolCallback> delegates = new java.util.concurrent.ConcurrentHashMap<>();
 
-	private Sagacity(SideEffectJournal journal, ApprovalStore approvalStore) {
+	/** Backoff initial delay in ms — used when building per-tool RetryPolicy objects. */
+	private final long retryInitialDelayMs;
+
+	/** Backoff multiplier — used when building per-tool RetryPolicy objects. */
+	private final double retryBackoffMultiplier;
+
+	private Sagacity(SideEffectJournal journal, ApprovalStore approvalStore,
+			long retryInitialDelayMs, double retryBackoffMultiplier) {
 		this.journal = journal;
 		this.approvalStore = approvalStore;
 		this.runner = new CompensationRunner(journal, this.registry);
 		this.auditExporter = new AuditExporter(journal);
+		this.retryInitialDelayMs = retryInitialDelayMs;
+		this.retryBackoffMultiplier = retryBackoffMultiplier;
 	}
 
 	/** In-memory journal + approval store — tests and demos. */
 	public static Sagacity create() {
-		return new Sagacity(new InMemorySideEffectJournal(), new InMemoryApprovalStore());
+		return new Sagacity(new InMemorySideEffectJournal(), new InMemoryApprovalStore(), 100L, 2.0);
 	}
 
 	public static Sagacity create(SideEffectJournal journal) {
-		return new Sagacity(journal, new InMemoryApprovalStore());
+		return new Sagacity(journal, new InMemoryApprovalStore(), 100L, 2.0);
 	}
 
 	public static Sagacity create(SideEffectJournal journal, ApprovalStore approvalStore) {
-		return new Sagacity(journal, approvalStore);
+		return new Sagacity(journal, approvalStore, 100L, 2.0);
+	}
+
+	/**
+	 * Creates a Sagacity instance with custom retry backoff configuration.
+	 * Per-tool retry counts and exception types are still declared via {@code @Compensable}.
+	 *
+	 * @param journal              the journal implementation
+	 * @param approvalStore        the approval store implementation
+	 * @param retryInitialDelayMs  initial backoff delay in ms (default 100)
+	 * @param retryBackoffMultiplier exponential multiplier per retry (default 2.0)
+	 */
+	public static Sagacity create(SideEffectJournal journal, ApprovalStore approvalStore,
+			long retryInitialDelayMs, double retryBackoffMultiplier) {
+		return new Sagacity(journal, approvalStore, retryInitialDelayMs, retryBackoffMultiplier);
 	}
 
 	/**
@@ -81,12 +105,12 @@ public final class Sagacity {
 				.build()
 				.getToolCallbacks();
 			for (ToolCallback callback : callbacks) {
-				Reversibility rev = CompensationScanner.reversibilityFor(toolBean,
-						callback.getToolDefinition().name(), this.registry);
-				// Keep the raw callback: resuming an approved tool must call the
-				// undecorated one, or the approval gate fires a second time.
-				this.delegates.put(callback.getToolDefinition().name(), callback);
-				wrapped.add(new SagacityToolCallback(callback, this.journal, this.approvalStore, rev));
+				String toolName = callback.getToolDefinition().name();
+				Reversibility rev = CompensationScanner.reversibilityFor(toolBean, toolName, this.registry);
+				RetryPolicy retryPolicy = CompensationScanner.retryPolicyFor(
+						toolBean, toolName, this.retryInitialDelayMs, this.retryBackoffMultiplier);
+				this.delegates.put(toolName, callback);
+				wrapped.add(new SagacityToolCallback(callback, this.journal, this.approvalStore, rev, retryPolicy));
 			}
 		}
 		return wrapped.toArray(ToolCallback[]::new);

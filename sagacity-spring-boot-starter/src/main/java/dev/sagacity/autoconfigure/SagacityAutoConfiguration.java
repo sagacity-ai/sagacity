@@ -84,8 +84,11 @@ public class SagacityAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public Sagacity sagacity(SideEffectJournal journal, ApprovalStore approvalStore) {
-		return Sagacity.create(journal, approvalStore);
+	public Sagacity sagacity(SideEffectJournal journal, ApprovalStore approvalStore,
+			SagacityProperties properties) {
+		SagacityProperties.Retry retry = properties.getRetry();
+		return Sagacity.create(journal, approvalStore,
+				retry.getInitialDelayMs(), retry.getBackoffMultiplier());
 	}
 
 	/**
