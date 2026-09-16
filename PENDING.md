@@ -28,7 +28,30 @@ sagacity:
 
 ---
 
-## M4 Retry (Cloud Journal)
+## Generic JDBC Journal
+
+**What:** A `GenericJdbcSideEffectJournal` that works with any JDBC-compatible database
+(MySQL, Oracle, MariaDB, SQLite, H2 in production) using standard SQL92 — no
+Postgres-specific syntax.
+
+**Why:** `PostgresSideEffectJournal` uses `SELECT ... FOR UPDATE` and `CHAR(64)` which
+are Postgres/H2 specific. MySQL/Oracle users currently have to implement the interface
+themselves.
+
+**What changes:**
+- Extract SQL dialect into a strategy interface: `JournalDialect`
+  - `PostgresDialect` — existing behaviour
+  - `GenericJdbcDialect` — standard SQL92, sequence via `MAX(seq) + 1` with retry on
+    unique key violation (same pattern as Postgres impl but without `FOR UPDATE`)
+- `SagacityAutoConfiguration` auto-detects database type from `DataSource.getMetaData()`
+  and picks the right dialect automatically
+- Users on MySQL/Oracle/MariaDB get zero-config support just like Postgres users
+
+**Constraint:** The hash chain (SHA-256 linking) is maintained in all dialects —
+tamper evidence must not be sacrificed for compatibility.
+
+**Priority:** Medium — blocks enterprise adoption on MySQL/Oracle shops.
+
 
 **What:** Retry journal writes when Sagacity Cloud / D1 is temporarily unavailable.
 **Where:** `sagacity-core` — `CloudSideEffectJournal`
