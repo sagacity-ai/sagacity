@@ -1,8 +1,8 @@
 site_name: Sagacity
 site_description: SAGA compensation for Spring AI tool calls, with a tamper-evident audit trail
-site_url: https://sumitvairagar.github.io/sagacity/
-repo_url: https://github.com/sumitvairagar/sagacity
-repo_name: sumitvairagar/sagacity
+site_url: https://sagacity-ai.github.io/sagacity/
+repo_url: https://github.com/sagacity-ai/sagacity
+repo_name: sagacity-ai/sagacity
 edit_uri: edit/main/docs/
 copyright: Apache License 2.0
 
@@ -96,4 +96,4 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/sumitvairagar/sagacity
+      link: https://github.com/sagacity-ai/sagacity
