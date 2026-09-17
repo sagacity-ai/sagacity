@@ -7,7 +7,7 @@ import dev.sagacity.core.approval.InMemoryApprovalStore;
 import dev.sagacity.core.approval.PostgresApprovalStore;
 import dev.sagacity.core.journal.CloudSideEffectJournal;
 import dev.sagacity.core.journal.InMemorySideEffectJournal;
-import dev.sagacity.core.journal.PostgresSideEffectJournal;
+import dev.sagacity.core.journal.JdbcSideEffectJournal;
 import dev.sagacity.core.journal.SideEffectJournal;
 import dev.sagacity.springai.Sagacity;
 
@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Bean;
  * <ol>
  *   <li>User-declared {@code SideEffectJournal} bean ({@code @ConditionalOnMissingBean})
  *   <li>{@code sagacity.cloud.api-key} is set → {@link CloudSideEffectJournal}
- *   <li>{@code DataSource} bean is present → {@link PostgresSideEffectJournal}
+ *   <li>{@code DataSource} bean is present → {@link JdbcSideEffectJournal}
  *   <li>Fallback → {@link InMemorySideEffectJournal} (dev/testing only)
  * </ol>
  *
@@ -54,13 +54,13 @@ public class SagacityAutoConfiguration {
 					: new CloudSideEffectJournal(cloud.getApiKey());
 		}
 
-		// Priority 2: Postgres when a DataSource is present
+		// Priority 2: JDBC journal — works with PostgreSQL, MySQL, MariaDB, Oracle, H2
 		DataSource dataSource = dataSourceProvider.getIfAvailable();
 		if (dataSource != null) {
 			if (properties.isSchemaInit()) {
 				initSchema(dataSource);
 			}
-			return new PostgresSideEffectJournal(dataSource);
+			return new JdbcSideEffectJournal(dataSource);
 		}
 
 		// Priority 3: In-memory fallback (dev/test only)

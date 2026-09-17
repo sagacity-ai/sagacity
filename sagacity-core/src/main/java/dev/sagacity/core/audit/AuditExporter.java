@@ -45,7 +45,7 @@ public final class AuditExporter {
 		if (entries.stream().allMatch(entry -> entry.hash().isEmpty())) {
 			return new VerificationResult(false, entries.size(), -1,
 					"journal is not hash-chained — tamper evidence unavailable "
-							+ "(use a hash-chaining journal such as PostgresSideEffectJournal)");
+							+ "(use a hash-chaining journal such as JdbcSideEffectJournal)");
 		}
 		String previousHash = HashChain.zeroHash();
 		for (int i = 0; i < entries.size(); i++) {

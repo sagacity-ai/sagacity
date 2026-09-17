@@ -50,7 +50,7 @@ class SagacityAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(SideEffectJournal.class);
                     assertThat(context.getBean(SideEffectJournal.class))
-                            .isInstanceOf(dev.sagacity.core.journal.PostgresSideEffectJournal.class);
+                            .isInstanceOf(dev.sagacity.core.journal.JdbcSideEffectJournal.class);
                 });
     }
 
