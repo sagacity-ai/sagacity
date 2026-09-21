@@ -3,10 +3,10 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.x-green.svg)](https://spring.io/projects/spring-ai)
-[![Build](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml/badge.svg)](https://github.com/sumitvairagar/sagacity/actions/workflows/build.yml)
+[![Build](https://github.com/sagacity-ai/sagacity/actions/workflows/build.yml/badge.svg)](https://github.com/sagacity-ai/sagacity/actions/workflows/build.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.sumitvairagar/sagacity-spring-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.sumitvairagar/sagacity-spring-boot-starter)
-[![Docs](https://img.shields.io/badge/docs-sumitvairagar.github.io%2Fsagacity-blue.svg)](https://sumitvairagar.github.io/sagacity/)
-[![Tests](https://img.shields.io/badge/tests-75%20unit%20%2B%2011%20IT-brightgreen.svg)]()
+[![Docs](https://img.shields.io/badge/docs-sagacity--ai.github.io%2Fsagacity-blue.svg)](https://sagacity-ai.github.io/sagacity/)
+[![Tests](https://img.shields.io/badge/tests-167%20passing-brightgreen.svg)]()
 
 **The SAGA pattern for AI agents.** Declarative compensation for Spring AI tool calls, with a tamper-evident audit trail.
 
@@ -43,6 +43,12 @@ public void releaseInventory(CompensationContext ctx) {
     // undoes the side effect using the original result
 }
 
+@Tool(description = "Charge the customer")
+@Compensable(by = "refundCharge", retries = 3, retryOn = { PaymentTimeoutException.class })
+public String chargeCustomer(String customerId, double amount) {
+    // retried up to 3x on transient failures before failing the saga
+}
+
 @Tool(description = "Send wire transfer")
 @Compensable(reversibility = Reversibility.IRREVERSIBLE)  // requires human approval
 public String sendWireTransfer(String orderId) {
@@ -65,15 +71,15 @@ SagaResult<ChatResponse> result = sagacity.saga("place-order-123",
 
 ## Documentation
 
-Full documentation: **[sumitvairagar.github.io/sagacity](https://sumitvairagar.github.io/sagacity/)**
+Full documentation: **[sagacity-ai.github.io/sagacity](https://sagacity-ai.github.io/sagacity/)**
 
 | | |
 |---|---|
-| [Getting started](https://sumitvairagar.github.io/sagacity/getting-started/) | Working example in five minutes |
-| [Approval gates](https://sumitvairagar.github.io/sagacity/guides/approval-gates/) | Human sign-off for irreversible tools |
-| [Production checklist](https://sumitvairagar.github.io/sagacity/guides/production-checklist/) | Read before pointing this at real money |
-| [Threat model](https://sumitvairagar.github.io/sagacity/concepts/threat-model/) | What the audit trail does and does not defend against |
-| [REST API](https://sumitvairagar.github.io/sagacity/reference/rest-api/) | Endpoint reference |
+| [Getting started](https://sagacity-ai.github.io/sagacity/getting-started/) | Working example in five minutes |
+| [Approval gates](https://sagacity-ai.github.io/sagacity/guides/approval-gates/) | Human sign-off for irreversible tools |
+| [Production checklist](https://sagacity-ai.github.io/sagacity/guides/production-checklist/) | Read before pointing this at real money |
+| [Threat model](https://sagacity-ai.github.io/sagacity/concepts/threat-model/) | What the audit trail does and does not defend against |
+| [REST API](https://sagacity-ai.github.io/sagacity/reference/rest-api/) | Endpoint reference |
 
 ## Quick Start
 
@@ -93,7 +99,7 @@ Full documentation: **[sumitvairagar.github.io/sagacity](https://sumitvairagar.g
 Or build from source:
 
 ```bash
-git clone https://github.com/sumitvairagar/sagacity.git
+git clone https://github.com/sagacity-ai/sagacity.git
 cd sagacity
 mvn clean install
 ```
@@ -171,7 +177,16 @@ sagacity:
   schema-init: true                  # auto-create tables on startup
   approval-endpoints-enabled: true   # expose REST API
 
-# Point to your Postgres (or any JDBC DataSource):
+  # v0.2.0: tool-level retry config
+  retry:
+    initial-delay-ms: 200            # default
+    backoff-multiplier: 2.0          # default, caps at 30s
+
+  # v0.2.0: use Sagacity Cloud instead of local DB (optional)
+  # cloud:
+  #   api-key: ${SAGACITY_API_KEY}
+
+# Point to your database (PostgreSQL, MySQL, MariaDB, Oracle, H2, SQLite):
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/myapp
@@ -255,13 +270,15 @@ curl http://localhost:8080/sagacity/audit/order-123/verify
 |---------|--------|-------------|
 | `@Compensable` / `@Compensation` | ✅ | Declare undo logic per tool |
 | Reverse-order compensation | ✅ | On failure, undo steps in reverse |
-| Postgres journal + SHA-256 hash chain | ✅ | Tamper-evident, crash-safe |
+| Universal JDBC journal + SHA-256 hash chain | ✅ | PostgreSQL, MySQL, MariaDB, Oracle, H2, SQLite |
 | Human approval gates | ✅ | IRREVERSIBLE tools suspend until approved |
 | Approve/Reject REST API | ✅ | With approver identity in audit trail |
 | Audit export (JSON Lines) | ✅ | Compliance-ready, one entry per line |
 | Hash chain verification | ✅ | Detect any modification to history |
 | Spring Boot Starter | ✅ | Zero-config auto-wiring |
-| Concurrent-safe | ✅ | SELECT FOR UPDATE, tested with 10 threads |
+| Concurrent-safe | ✅ | Optimistic concurrency + unique-constraint retry, tested with 10 threads |
+| Tool-level retry | ✅ | `@Compensable(retries=3, retryOn={...})` with exponential backoff |
+| Sagacity Cloud journal | ✅ | Write journal to hosted cloud instead of local DB |
 
 ## Why Not Just Use Temporal / DBOS / Restate?
 
@@ -306,7 +323,7 @@ Sagacity's hash-chained journal maps directly to Article 12:
 | Automatic logging | Every tool call journaled (INTENT/EXECUTED/FAILED) |
 | Tamper-evident | SHA-256 hash chain, verifiable via REST API |
 | Traceable decisions | Saga ID links all steps; approval identity recorded |
-| Retention | Postgres persistence; retention policies (roadmap) |
+| Retention | JDBC persistence (PostgreSQL, MySQL, and more); retention policies (roadmap) |
 
 ## Roadmap
 
@@ -315,7 +332,8 @@ Sagacity's hash-chained journal maps directly to Article 12:
 | **M0** — Walking skeleton | ✅ Done |
 | **M1** — Postgres journal + hash chain | ✅ Done |
 | **M2** — Approval gates + audit export | ✅ Done |
-| **M3** — Spring Boot Starter | ✅ Done |
+| **M3** — Spring Boot Starter + Maven Central | ✅ Done (v0.1.0, Aug 2026) |
+| **M3.5** — Cloud journal + retry + universal JDBC | ✅ Done (v0.2.0, Sept 2026) |
 | **M4** — Ecosystem | 📋 Planned |
 
 ### M4 (planned):
@@ -324,9 +342,9 @@ Sagacity's hash-chained journal maps directly to Article 12:
 - Streaming tool-call support
 - MCP tool support
 - Approval dashboard UI
-- Maven Central publish
+- Authenticated approver identity + approval expiry
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
+See [docs/about/roadmap.md](docs/about/roadmap.md) for details.
 
 ## Contributing
 
