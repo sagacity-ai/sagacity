@@ -55,7 +55,6 @@
         <module>sagacity-spring-boot-starter</module>
         <module>sagacity-workflows</module>
         <module>sagacity-examples</module>
-        <module>sagacity-ui-demo</module>
         <!-- Last: aggregates coverage over everything above -->
         <module>sagacity-coverage</module>
     </modules>
