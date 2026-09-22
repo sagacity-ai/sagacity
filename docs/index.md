@@ -162,27 +162,34 @@ handle.awaitCompletion(30, TimeUnit.MINUTES);
 
 <p class="sg-eyebrow">The distinction that matters</p>
 
-## How Sagacity relates to Temporal, DBOS, Restate
+## How Sagacity relates to Temporal
 
-Those solve **durability** — resuming a workflow after a process crash. That is a
-different problem.
+Temporal is infrastructure. It solves **durable execution** — if your process crashes, your workflow replays from exactly where it stopped. It also handles distributed workers, cross-service orchestration, and horizontal scale. Temporal just raised $550M and ships a Spring AI integration (`temporal-spring-ai`) that makes model calls and tool executions durable activities. It is serious, production-grade infrastructure.
 
-A workflow that resumes perfectly after a crash still leaves you with a charged card
-when the business logic says the order must be cancelled. A refund is not a retry.
+That is not the same problem Sagacity solves.
 
-| | Temporal / DBOS / Restate | Sagacity |
+A workflow that resumes perfectly after a crash still leaves you with:
+- A charged card when the business logic says the order should be abandoned
+- An inventory reservation nobody will ever release
+- An email already sent to a customer about a transaction that failed
+
+**Crash recovery cannot undo a side effect. A refund is not a retry.**
+
+Sagacity answers a different question: when your agent succeeds technically but the business says "this should not have happened," what gets unwound, who approved it before it ran, and what is the tamper-evident record?
+
+| | Temporal | Sagacity |
 |---|---|---|
-| Resume after process crash | ✅ | 📋 v0.4 (JDBC-backed state) |
-| Undo side effects on failure | ❌ | ✅ |
-| Tamper-evident audit trail | ❌ | ✅ |
-| EU AI Act Article 12 | ❌ | ✅ |
-| Human approval gates | ❌ | ✅ |
-| Declarative workflow engine | ✅ | ✅ |
-| Spring AI native | ❌ | ✅ |
-| No new infrastructure to run | ❌ | ✅ |
+| Durable execution (survive process crash) | ✅ cluster-backed | ❌ v0.4 adds JDBC state, not the same |
+| Distributed workers, horizontal scale | ✅ | ❌ single JVM |
+| Spring AI native integration | ✅ `temporal-spring-ai` (Preview) | ✅ `sagacity-spring-boot-starter` |
+| Undo side effects on **business** failure | ⚠️ possible via child workflow pattern | ✅ `@Compensable` — first-class, annotation-driven |
+| Tamper-evident SHA-256 audit trail | ❌ event history is operational, not compliance-grade | ✅ append-only, hash-chained, verifiable |
+| EU AI Act Article 12 compliance | ❌ | ✅ |
+| Human approval gates before irreversible actions | ❌ | ✅ `@Gate(approvalRequired=true)` |
+| New infrastructure to run | ✅ cluster or Temporal Cloud (~$200+/month) | ❌ library — add a dependency |
+| Adopt without rewriting agent code | ❌ must model everything as Workflows + Activities | ✅ annotate existing Spring AI tools |
 
-They are complementary. Sagacity handles what happens when business logic says
-"this should not have happened" — which crash recovery cannot help with.
+**They are complementary.** A production system could use both — Temporal for durability and scale, Sagacity for compensation semantics, approval gates, and the compliance audit trail. The things Temporal's event history records and the things Sagacity's hash-chained journal records serve different audiences: Temporal's history is for engineers debugging a stuck workflow; Sagacity's journal is for compliance officers proving what an AI agent did, in what order, and who approved it.
 
 <p class="sg-eyebrow">Install</p>
 

@@ -365,22 +365,29 @@ workflowRuntime.runAsync(workflow, input)
 
 ---
 
-## Why Not Just Use Temporal / DBOS / Restate?
+## How Sagacity relates to Temporal
 
-Those solve **durability** (resume after crash). Sagacity solves **compensation** and **evidence**:
+Temporal is serious infrastructure — it just raised $550M at a $12.55B valuation and ships a Spring AI integration (`temporal-spring-ai`) that makes model calls durable activities. Temporal solves **durable execution**: if your process crashes, your workflow replays from exactly where it stopped. That is a genuinely hard infrastructure problem and Temporal solves it well.
 
-| | Temporal/DBOS/Restate | Sagacity |
+It is not the same problem Sagacity solves.
+
+A workflow that resumes perfectly after a crash still leaves you with a charged card when the business logic says the order should be abandoned. Crash recovery cannot undo a side effect. **A refund is not a retry.**
+
+Sagacity answers: when your agent succeeds technically but the business says "this should not have happened," what gets unwound, who approved it before it ran, and what is the tamper-evident record?
+
+| | Temporal | Sagacity |
 |---|---|---|
-| Resume after crash | ✅ | 📋 (JDBC-backed state in v0.4) |
-| Undo side effects on failure | ❌ | ✅ |
-| Tamper-evident audit trail | ❌ | ✅ |
-| EU AI Act Article 12 | ❌ | ✅ |
-| Human approval gates | ❌ | ✅ |
-| Declarative workflow engine | ✅ | ✅ **v0.3.0** |
-| Spring AI native | ❌ | ✅ |
-| Annotation-based DX | ❌ | ✅ |
+| Durable execution (survive process crash) | ✅ cluster-backed | ❌ v0.4 adds JDBC state, not the same |
+| Distributed workers, horizontal scale | ✅ | ❌ single JVM |
+| Spring AI native integration | ✅ `temporal-spring-ai` (Preview) | ✅ `sagacity-spring-boot-starter` |
+| Undo side effects on **business** failure | ⚠️ possible via child workflow pattern | ✅ annotation-driven, first-class |
+| Tamper-evident SHA-256 audit trail | ❌ event history is operational, not compliance-grade | ✅ |
+| EU AI Act Article 12 compliance | ❌ | ✅ |
+| Human approval gates (first-class primitive) | ❌ | ✅ `@Gate(approvalRequired=true)` |
+| New infrastructure to run | ✅ cluster or Temporal Cloud | ❌ library only |
+| Adopt without rewriting agent code | ❌ must model as Workflows + Activities | ✅ annotate existing Spring AI tools |
 
-They're complementary, not competing.
+**They are complementary.** Use Temporal for durability and distributed scale. Use Sagacity for compensation semantics, human approval gates, and the compliance audit trail that regulators and compliance officers need — not just engineers debugging a stuck workflow.
 
 ---
 
