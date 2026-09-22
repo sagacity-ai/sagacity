@@ -1,5 +1,5 @@
 site_name: Sagacity
-site_description: SAGA compensation for Spring AI tool calls, with a tamper-evident audit trail
+site_description: The reliability layer for Spring AI agents — declarative workflows, automatic compensation, human approval gates, and a tamper-evident audit trail
 site_url: https://sagacity-ai.github.io/sagacity/
 repo_url: https://github.com/sagacity-ai/sagacity
 repo_name: sagacity-ai/sagacity

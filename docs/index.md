@@ -9,17 +9,92 @@ hide:
 # Sagacity
 
 <p class="sg-tagline">
-Your agent charged the card, reserved the inventory, then failed on step four.
-<strong>Sagacity undoes what already happened, gates irreversible actions behind human approval, and produces the evidence.</strong>
+The reliability layer for Spring AI agents.
+<strong>Declarative workflows, automatic compensation, human approval gates, and a tamper-evident audit trail — in annotations.</strong>
 </p>
 
 <div class="sg-cta" markdown>
 [Get started](getting-started.md){ .md-button .md-button--primary }
-[Architecture](concepts/architecture.md){ .md-button }
+[Workflows guide](guides/workflows.md){ .md-button }
 [View on GitHub](https://github.com/sumitvairagar/sagacity){ .md-button }
 </div>
 
 </div>
+
+---
+
+AI agents do real work: they reserve inventory, charge cards, send emails, update CRMs. When step 4 of 5 fails:
+
+- the side effects from steps 1–3 are **live in production**
+- nothing undoes them automatically
+- there is no compliance-grade record of what happened
+- nobody approved the irreversible action in step 3
+
+Sagacity fixes all four — as a library, inside your existing Spring Boot app, with no new infrastructure.
+
+---
+
+<div class="sg-grid" markdown>
+
+<div class="sg-card" markdown>
+
+### <span class="sg-dot sg-dot--green"></span> Verifiable workflows
+
+Declare multi-step agent workflows with `@Workflow`, `@Stage`, `@Gate`, and `@Check`.
+The runtime executes stages in order, chains outputs as inputs, and compensates completed
+stages in reverse when anything fails. Topology is validated at startup — bad definitions
+crash the app, not a production run.
+
+[Guide →](guides/workflows.md)
+
+</div>
+
+<div class="sg-card" markdown>
+
+### <span class="sg-dot sg-dot--green"></span> Automatic compensation
+
+Every `@Stage` or `@Tool` paired with `@Compensable` gets an automatic undo when the
+workflow fails. Compensations run in reverse execution order, each outcome journaled.
+A failing compensation is recorded and the run continues — partial cleanup beats none.
+
+[Guide →](guides/compensation.md)
+
+</div>
+
+<div class="sg-card" markdown>
+
+### <span class="sg-dot sg-dot--amber"></span> Human approval gates
+
+Mark a stage with `@Gate(approvalRequired = true)` and the workflow pauses before it
+executes. Resume via REST or programmatically. The approval is bound to the exact input
+the approver saw — a re-planning agent cannot substitute a different payload.
+
+[Guide →](guides/approval-gates.md)
+
+</div>
+
+<div class="sg-card" markdown>
+
+### <span class="sg-dot sg-dot--blue"></span> Tamper-evident audit
+
+Every stage execution is journaled with SHA-256 hash chaining. Export as JSON Lines.
+Verify the chain via REST to detect any modification made directly in the database.
+Maps directly to EU AI Act Article 12.
+
+[Guide →](guides/audit-and-verification.md)
+
+</div>
+
+</div>
+
+---
+
+<p class="sg-eyebrow">Two minutes to understand the shape</p>
+
+## Wrap individual tools, or declare a workflow
+
+**Option A — annotate individual tools.** Sagacity intercepts every Spring AI tool call,
+journals it, and compensates on failure. Drop `@Compensable` on any `@Tool` method.
 
 ```java
 @Tool(description = "Charge the customer")
@@ -34,85 +109,82 @@ public void refundCharge(CompensationContext ctx) {
 }
 ```
 
-That is the whole developer-facing idea. One annotation names the undo.
+**Option B — declare a verifiable workflow.** Define the entire multi-step process as
+annotated stages. Stage outputs chain as inputs automatically. Gates, checks, and
+compensation are all first-class.
 
-<div class="sg-grid" markdown>
+```java
+@Workflow("order-placement")
+@Component
+public class OrderWorkflow {
 
-<div class="sg-card" markdown>
+    @Stage(order = 1)
+    @Compensable(by = "releaseInventory")
+    public Reservation reserveInventory(String orderId) { ... }
 
-### <span class="sg-dot sg-dot--green"></span> Compensation
+    @Stage(order = 2)
+    @Compensable(by = "refundCharge")
+    public ChargeReceipt chargeCard(Reservation reservation) {
+        // 'reservation' injected automatically from stage 1
+    }
 
-Declare an undo per tool. On failure, compensations run in reverse order of
-execution, each outcome journaled. A failing compensation is recorded and the
-run continues — partial cleanup beats none.
+    @Stage(order = 3)
+    @Check(BudgetCheck.class)                    // blocks if budget exceeded
+    @Gate(approvalRequired = true)               // waits for human sign-off
+    public void wireTransfer(ChargeReceipt receipt) { ... }
 
-[Guide →](guides/compensation.md)
+    @Compensation public void releaseInventory(CompensationContext ctx) { ... }
+    @Compensation public void refundCharge(CompensationContext ctx) { ... }
+}
+```
 
-</div>
-
-<div class="sg-card" markdown>
-
-### <span class="sg-dot sg-dot--amber"></span> Approval gates
-
-Tools marked `IRREVERSIBLE` suspend the saga until a human approves. The approval
-is bound to the exact payload the approver saw, so a re-planning agent cannot
-substitute a different one.
-
-[Guide →](guides/approval-gates.md)
-
-</div>
-
-<div class="sg-card" markdown>
-
-### <span class="sg-dot sg-dot--blue"></span> Tamper-evident audit
-
-Every tool call is journaled to an append-only table with SHA-256 hash chaining.
-Export as JSON Lines; verify the chain to detect edits made directly in the
-database. Maps to EU AI Act Article 12.
-
-[Guide →](guides/audit-and-verification.md)
-
-</div>
-
-<div class="sg-card" markdown>
-
-### <span class="sg-dot sg-dot--green"></span> Verifiable workflows
-
-Declare multi-step agent workflows with `@Stage`, `@Gate`, and `@Check`.
-Compensation is built in — if stage 4 fails, stages 1–3 unwind automatically.
-Human gates pause execution until approved via REST or programmatically.
-
-[Guide →](guides/workflows.md)
-
-</div>
-
-</div>
-
----
+```java
+WorkflowHandle handle = workflowRuntime.runAsync(orderWorkflow, orderId);
+// workflow pauses at stage 3 — approve via REST or programmatically
+workflowRuntime.approveGate(handle.runId(), "wireTransfer");
+handle.awaitCompletion(30, TimeUnit.MINUTES);
+```
 
 <p class="sg-eyebrow">The distinction that matters</p>
 
-## Compensation is not durability
+## How Sagacity relates to Temporal, DBOS, Restate
 
-Temporal, Restate and DBOS solve **durability** — resuming a workflow after a
-crash. That is a different problem from **compensation** — undoing effects that
-already happened and cannot be replayed away.
+Those solve **durability** — resuming a workflow after a process crash. That is a
+different problem.
 
-A workflow that resumes perfectly still leaves you with a charged card when the
-business logic says the order must be abandoned. A refund is not a retry.
+A workflow that resumes perfectly after a crash still leaves you with a charged card
+when the business logic says the order must be cancelled. A refund is not a retry.
 
-Sagacity solves compensation and evidence. It is not a workflow engine, not an
-agent framework, and does not replace the above — it sits inside Spring AI's
-tool-calling path and records what happened.
+| | Temporal / DBOS / Restate | Sagacity |
+|---|---|---|
+| Resume after process crash | ✅ | 📋 v0.4 (JDBC-backed state) |
+| Undo side effects on failure | ❌ | ✅ |
+| Tamper-evident audit trail | ❌ | ✅ |
+| EU AI Act Article 12 | ❌ | ✅ |
+| Human approval gates | ❌ | ✅ |
+| Declarative workflow engine | ✅ | ✅ |
+| Spring AI native | ❌ | ✅ |
+| No new infrastructure to run | ❌ | ✅ |
+
+They are complementary. Sagacity handles what happens when business logic says
+"this should not have happened" — which crash recovery cannot help with.
 
 <p class="sg-eyebrow">Install</p>
 
 ## Add the dependency
 
 ```xml
+<!-- Core: compensation + audit trail -->
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
+    <version>0.3.0</version>
+</dependency>
+
+<!-- Optional: declarative workflow engine -->
+<dependency>
+    <groupId>io.github.sumitvairagar</groupId>
+    <artifactId>sagacity-workflows</artifactId>
     <version>0.3.0</version>
 </dependency>
 ```
@@ -129,13 +201,13 @@ Requires Java 17+, Spring AI 2.0.0, Spring Boot 4.0.x.
 
 ## Status
 
-`0.1.0` is a first release. The compensation, approval and audit paths are
-covered by 88 unit tests and 18 integration tests against real Postgres, but the
-library has not been battle-tested in production by anyone yet.
+`0.3.0` ships the workflow engine. The compensation, approval, audit, and workflow paths
+are covered by **202 tests** across unit and integration suites, but the library has not
+been battle-tested in production by anyone yet.
 
-Read the [threat model](concepts/threat-model.md) before relying on the audit
-trail for anything that matters — it states plainly what the hash chain does and
-does not defend against, including the parts that are unflattering.
+Read the [threat model](concepts/threat-model.md) before relying on the audit trail for
+anything that matters. Workflow state is in-memory in v0.3 — runs are lost on JVM restart.
+JDBC-backed durable state is the v0.4 priority.
 
-Known gaps: no streaming tool-call support, no LangChain4j adapter, no UI. See
-the [roadmap](about/roadmap.md).
+Known gaps: no streaming tool-call support, no LangChain4j adapter, no approval dashboard UI.
+See the [roadmap](about/roadmap.md).
