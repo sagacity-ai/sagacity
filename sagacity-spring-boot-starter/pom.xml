@@ -23,6 +23,12 @@
             <groupId>io.github.sumitvairagar</groupId>
             <artifactId>sagacity-spring-ai</artifactId>
         </dependency>
+        <!-- Workflows module — optional, wired in when present on classpath -->
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-workflows</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

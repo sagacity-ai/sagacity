@@ -74,6 +74,7 @@ nav:
   - Guides:
       - Compensating a failed saga: guides/compensation.md
       - Approval gates for irreversible tools: guides/approval-gates.md
+      - Verifiable workflows: guides/workflows.md
       - Audit export and verification: guides/audit-and-verification.md
       - Production checklist: guides/production-checklist.md
   - Reference:

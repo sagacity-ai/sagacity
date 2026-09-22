@@ -65,7 +65,30 @@
 - Testcontainers IT suite runs identical assertions against PostgreSQL and MySQL.
 - **167 tests total, all passing.**
 
-## M4 — Ecosystem (post-launch, driven by feedback)
+## M4 — Workflow engine ✅ DONE 2026-09-22 (v0.3.0)
+
+Sagacity graduates from a tool-call interceptor to a full workflow engine. The framing
+shifts from "SAGA pattern for Spring AI" to **"the reliability layer for Spring AI agents"**.
+
+- **`sagacity-workflows` module** — `@Workflow`, `@Stage`, `@Gate`, `@Check` annotations
+- **`WorkflowRuntime`** — executes stages in declared order, chains stage outputs as
+  inputs to the next stage, compensates completed stages in reverse order on failure
+- **`@Gate(approvalRequired = true)`** — pauses the workflow for human approval before
+  executing a stage. Workflow transitions to `PAUSED_AT_GATE`. REST endpoint ships out
+  of the box: `POST /sagacity/workflows/{runId}/gates/{stageName}/approve|reject`
+- **`@Check`** — pre-flight checks that block a stage before it runs. Implement
+  `StageCheck` as a Spring bean: budget enforcement, Jev risk scoring, precondition validation
+- **Startup topology validation** — duplicate stage orders, `@Compensable(by="x")` with
+  no matching `@Compensation` method crash the application at startup, not at runtime
+- **`WorkflowHandle`** — async execution with `awaitCompletion()`, status polling,
+  failure reason retrieval
+- **`WorkflowStatus`** — `RUNNING → PAUSED_AT_GATE → COMPENSATING → COMPLETED/FAILED`
+- **`GET /sagacity/workflows`**, **`GET /sagacity/workflows/{runId}`** — list and inspect runs
+- Inspired by Atomic's verifiable agent runtime — gate-as-first-class-state, topology
+  validation at startup, graceful degradation patterns
+- **202 tests total across the full repo, all passing.**
+
+## M5 — Ecosystem (post-launch, driven by feedback)
 - **Typed compensation methods** — auto-bind original tool parameters and result
   to the compensation method signature (no more manual JSON parsing). Eliminates
   `CompensationContext` string wrangling for the common case.

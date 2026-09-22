@@ -10,7 +10,7 @@ hide:
 
 <p class="sg-tagline">
 Your agent charged the card, reserved the inventory, then failed on step four.
-<strong>Sagacity undoes what already happened — and produces the evidence.</strong>
+<strong>Sagacity undoes what already happened, gates irreversible actions behind human approval, and produces the evidence.</strong>
 </p>
 
 <div class="sg-cta" markdown>
@@ -66,11 +66,23 @@ substitute a different one.
 
 ### <span class="sg-dot sg-dot--blue"></span> Tamper-evident audit
 
-Every tool call is journaled to an append-only Postgres table with SHA-256 hash
-chaining. Export as JSON Lines; verify the chain to detect edits made directly in
-the database.
+Every tool call is journaled to an append-only table with SHA-256 hash chaining.
+Export as JSON Lines; verify the chain to detect edits made directly in the
+database. Maps to EU AI Act Article 12.
 
 [Guide →](guides/audit-and-verification.md)
+
+</div>
+
+<div class="sg-card" markdown>
+
+### <span class="sg-dot sg-dot--green"></span> Verifiable workflows
+
+Declare multi-step agent workflows with `@Stage`, `@Gate`, and `@Check`.
+Compensation is built in — if stage 4 fails, stages 1–3 unwind automatically.
+Human gates pause execution until approved via REST or programmatically.
+
+[Guide →](guides/workflows.md)
 
 </div>
 
@@ -101,7 +113,7 @@ tool-calling path and records what happened.
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
