@@ -26,3 +26,9 @@ docs/LAUNCH-POSTS.md
 # MkDocs build output
 site/
 docs/SPRING-AI-COMMUNITY-PROPOSAL.md
+
+# Local dev tools — not part of the published library
+sagacity-ui-demo/
+sagacity-quickstart/
+sagacity-dashboard/
+sagacity-cloud-api/
