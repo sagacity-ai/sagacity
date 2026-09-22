@@ -12,7 +12,7 @@
 
 <!-- Animated diagram: tools execute → failure → compensation flows backward -->
 <p align="center">
-  <img src="docs/saga-flow.svg" alt="Sagacity flow: execute tools, detect failure, compensate in reverse" width="800"/>
+  <img src="docs/saga-flow.svg" alt="Sagacity: workflow stages execute in order, gate pauses for human approval, failure triggers reverse compensation, every step journaled with hash chain" width="860"/>
 </p>
 
 ---
@@ -66,44 +66,62 @@ SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
 
 ### Option B — Declare a verifiable workflow (`sagacity-workflows`)
 
-Define the entire multi-step process as annotated stages. The runtime executes them in order, chains outputs as inputs, and compensates in reverse on any failure. Human gates, pre-flight checks, and async execution are first-class features.
+Define the entire multi-step process as annotated stages. The runtime executes them in order, chains each stage's output as the next stage's input automatically, and compensates in reverse on any failure. Human gates pause execution until approved.
 
 ```java
-@Workflow("refund-request")
+@Workflow("refund-approval")
 @Component
 public class RefundWorkflow {
 
     @Stage(order = 1)
-    @Compensable(by = "cancelRefund")
-    public RefundConfirmation issueRefund(String orderId) {
-        return payments.refund(orderId);
+    @Compensable(by = "cancelValidation")       // ← undo if anything fails later
+    public String validateRefund(String orderId) {
+        return validation.check(orderId);        // returns "val-8821"
     }
 
     @Stage(order = 2)
-    @Check(BudgetCheck.class)                    // pre-flight: block if budget exceeded
-    @Gate(approvalRequired = true)               // pause: wait for human before proceeding
-    @Compensable(by = "revertEmail")
-    public void notifyCustomer(RefundConfirmation refund) {
-        email.send(refund.customerId(), "Your refund is processing");
+    @Compensable(by = "reverseRefund")
+    public String issueRefund(String validationId) {
+        // 'validationId' injected automatically from stage 1's return value
+        return payments.refund(validationId);    // returns "ref-4492"
+    }
+
+    @Stage(order = 3)
+    @Gate(approvalRequired = true,               // ← workflow pauses here
+          reason = "Compliance must approve before customer is notified")
+    public String notifyCompliance(String refundId) {
+        // only runs AFTER a human approves:
+        // POST /sagacity/workflows/{runId}/gates/notifyCompliance/approve
+        return compliance.log(refundId);
+    }
+
+    @Stage(order = 4)
+    public void sendConfirmation(String complianceRef) {
+        email.send(complianceRef, "Your refund is confirmed");
     }
 
     @Compensation
-    public void cancelRefund(CompensationContext ctx) { payments.reverse(ctx.result()); }
+    public void cancelValidation(CompensationContext ctx) {
+        validation.cancel(ctx.result());
+    }
 
     @Compensation
-    public void revertEmail(CompensationContext ctx) { email.retract(ctx.result()); }
+    public void reverseRefund(CompensationContext ctx) {
+        payments.reverse(ctx.result());          // ctx.result() = "ref-4492"
+    }
 }
 ```
 
 ```java
-// Async — workflow pauses at the @Gate until someone approves
-WorkflowHandle handle = workflowRuntime.runAsync(refundWorkflow, orderId);
+// Run async — returns immediately, workflow pauses at stage 3
+WorkflowHandle handle = workflowRuntime.runAsync(refundWorkflow, "ORDER-88210");
 
 // Approve via REST or programmatically
-workflowRuntime.approveGate(handle.runId(), "notifyCustomer");
+workflowRuntime.approveGate(handle.runId(), "notifyCompliance");
 
-handle.awaitCompletion(60, TimeUnit.MINUTES);
+handle.awaitCompletion(30, TimeUnit.MINUTES);
 // → WorkflowStatus.COMPLETED
+// Every stage journaled. If anything fails, stages 2 and 1 compensate in reverse.
 ```
 
 ---

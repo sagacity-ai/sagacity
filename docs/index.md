@@ -100,12 +100,12 @@ journals it, and compensates on failure. Drop `@Compensable` on any `@Tool` meth
 @Tool(description = "Charge the customer")
 @Compensable(by = "refundCharge")
 public String chargeCard(String amount, String customerId) {
-    return payments.charge(customerId, amount);
+    return payments.charge(customerId, amount);   // returns "ch_1M2n3"
 }
 
 @Compensation
 public void refundCharge(CompensationContext ctx) {
-    payments.refund(ctx.result());
+    payments.refund(ctx.result());               // ctx.result() = "ch_1M2n3"
 }
 ```
 
@@ -114,35 +114,50 @@ annotated stages. Stage outputs chain as inputs automatically. Gates, checks, an
 compensation are all first-class.
 
 ```java
-@Workflow("order-placement")
+@Workflow("refund-approval")
 @Component
-public class OrderWorkflow {
+public class RefundWorkflow {
 
     @Stage(order = 1)
-    @Compensable(by = "releaseInventory")
-    public Reservation reserveInventory(String orderId) { ... }
+    @Compensable(by = "cancelValidation")       // undo if anything fails later
+    public String validateRefund(String orderId) {
+        return validation.check(orderId);        // returns "val-8821"
+    }
 
     @Stage(order = 2)
-    @Compensable(by = "refundCharge")
-    public ChargeReceipt chargeCard(Reservation reservation) {
-        // 'reservation' injected automatically from stage 1
+    @Compensable(by = "reverseRefund")
+    public String issueRefund(String validationId) {
+        // 'validationId' injected automatically from stage 1's return value
+        return payments.refund(validationId);    // returns "ref-4492"
     }
 
     @Stage(order = 3)
-    @Check(BudgetCheck.class)                    // blocks if budget exceeded
-    @Gate(approvalRequired = true)               // waits for human sign-off
-    public void wireTransfer(ChargeReceipt receipt) { ... }
+    @Gate(approvalRequired = true,               // workflow pauses here
+          reason = "Compliance must approve before customer is notified")
+    public String notifyCompliance(String refundId) {
+        // POST /sagacity/workflows/{runId}/gates/notifyCompliance/approve
+        return compliance.log(refundId);
+    }
 
-    @Compensation public void releaseInventory(CompensationContext ctx) { ... }
-    @Compensation public void refundCharge(CompensationContext ctx) { ... }
+    @Stage(order = 4)
+    public void sendConfirmation(String complianceRef) {
+        email.send(complianceRef, "Your refund is confirmed");
+    }
+
+    @Compensation
+    public void cancelValidation(CompensationContext ctx) { validation.cancel(ctx.result()); }
+
+    @Compensation
+    public void reverseRefund(CompensationContext ctx) { payments.reverse(ctx.result()); }
 }
 ```
 
 ```java
-WorkflowHandle handle = workflowRuntime.runAsync(orderWorkflow, orderId);
-// workflow pauses at stage 3 — approve via REST or programmatically
-workflowRuntime.approveGate(handle.runId(), "wireTransfer");
+// Run async — pauses at stage 3 until approved
+WorkflowHandle handle = workflowRuntime.runAsync(refundWorkflow, "ORDER-88210");
+workflowRuntime.approveGate(handle.runId(), "notifyCompliance");
 handle.awaitCompletion(30, TimeUnit.MINUTES);
+// Every stage journaled. Failure at any stage compensates in reverse.
 ```
 
 <p class="sg-eyebrow">The distinction that matters</p>
