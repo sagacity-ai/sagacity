@@ -1,189 +1,223 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 500" font-family="monospace" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 580" font-family="'Inter', 'Segoe UI', system-ui, sans-serif">
+
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3fb950"/>
+    </marker>
+    <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#58a6ff"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f0883e"/>
+    </marker>
+    <marker id="arr-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f85149"/>
+    </marker>
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+    <!-- Glow for gate -->
+    <filter id="glow-orange">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
 
   <!-- Background -->
-  <rect width="860" height="500" fill="#0d1117" rx="8"/>
+  <rect width="960" height="580" fill="#0d1117" rx="12"/>
 
-  <!-- Title -->
-  <text x="430" y="32" fill="#58a6ff" text-anchor="middle" font-size="15" font-weight="bold">Sagacity: Verifiable workflows with automatic compensation and human gates</text>
+  <!-- ─── TITLE ─────────────────────────────────────────────────────── -->
+  <text x="480" y="36" fill="#f0f6fc" text-anchor="middle" font-size="17" font-weight="700" letter-spacing="-0.3">Sagacity — Reliability Layer for Spring AI Agents</text>
+  <text x="480" y="56" fill="#8b949e" text-anchor="middle" font-size="12">Verifiable workflows · Automatic compensation · Human approval gates · Tamper-evident audit</text>
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- FORWARD EXECUTION TIMELINE                                      -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- ─── SECTION LABEL: HAPPY PATH ─────────────────────────────────── -->
+  <text x="30" y="90" fill="#3fb950" font-size="11" font-weight="600" letter-spacing="0.5">HAPPY PATH</text>
+  <line x1="30" y1="95" x2="700" y2="95" stroke="#21262d" stroke-width="1"/>
 
-  <!-- Timeline backbone -->
-  <line x1="60" y1="100" x2="620" y2="100" stroke="#30363d" stroke-width="2"/>
+  <!-- ─── STAGE NODES (happy path, y=120) ───────────────────────────── -->
 
   <!-- Stage 1: validateRefund -->
-  <g>
-    <rect x="55" y="72" width="130" height="56" rx="6" fill="#1a2332" stroke="#7ee787" stroke-width="2">
-      <animate attributeName="stroke-opacity" values="0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.06;1"/>
-    </rect>
-    <text x="120" y="91" fill="#7ee787" text-anchor="middle" font-size="10" font-weight="bold">Stage 1 ✅</text>
-    <text x="120" y="106" fill="#c9d1d9" text-anchor="middle" font-size="9">validateRefund</text>
-    <text x="120" y="120" fill="#8b949e" text-anchor="middle" font-size="8">→ "val-001"</text>
+  <g filter="url(#shadow)">
+    <rect x="30" y="105" width="148" height="72" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <rect x="30" y="105" width="148" height="22" rx="8" fill="#1a3a24"/>
+    <rect x="30" y="119" width="148" height="8" fill="#1a3a24"/>
+    <text x="104" y="121" fill="#3fb950" text-anchor="middle" font-size="10" font-weight="700">STAGE 1  ✓ EXECUTED</text>
+    <text x="104" y="141" fill="#e6edf3" text-anchor="middle" font-size="12" font-weight="600">validateRefund</text>
+    <text x="104" y="158" fill="#8b949e" text-anchor="middle" font-size="10">@Compensable(by=</text>
+    <text x="104" y="170" fill="#8b949e" text-anchor="middle" font-size="10">"cancelValidation")</text>
   </g>
 
-  <!-- Arrow 1→2 -->
-  <path d="M185,100 L215,100" stroke="#7ee787" stroke-width="1.5" marker-end="url(#ag)">
-    <animate attributeName="opacity" values="0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.1;0.14;1"/>
-  </path>
+  <!-- Arrow 1→2 with chaining label -->
+  <line x1="178" y1="141" x2="208" y2="141" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-green)"/>
+  <text x="193" y="135" fill="#3fb950" text-anchor="middle" font-size="9">"val-8821"</text>
 
   <!-- Stage 2: issueRefund -->
-  <g>
-    <rect x="215" y="72" width="130" height="56" rx="6" fill="#1a2332" stroke="#7ee787" stroke-width="2">
-      <animate attributeName="stroke-opacity" values="0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.13;0.2;1"/>
-    </rect>
-    <text x="280" y="91" fill="#7ee787" text-anchor="middle" font-size="10" font-weight="bold">Stage 2 ✅</text>
-    <text x="280" y="106" fill="#c9d1d9" text-anchor="middle" font-size="9">issueRefund</text>
-    <text x="280" y="120" fill="#8b949e" text-anchor="middle" font-size="8">↳ "val-001" in</text>
+  <g filter="url(#shadow)">
+    <rect x="208" y="105" width="148" height="72" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <rect x="208" y="105" width="148" height="22" rx="8" fill="#1a3a24"/>
+    <rect x="208" y="119" width="148" height="8" fill="#1a3a24"/>
+    <text x="282" y="121" fill="#3fb950" text-anchor="middle" font-size="10" font-weight="700">STAGE 2  ✓ EXECUTED</text>
+    <text x="282" y="141" fill="#e6edf3" text-anchor="middle" font-size="12" font-weight="600">issueRefund</text>
+    <text x="282" y="158" fill="#8b949e" text-anchor="middle" font-size="10">@Compensable(by=</text>
+    <text x="282" y="170" fill="#8b949e" text-anchor="middle" font-size="10">"reverseRefund")</text>
   </g>
 
-  <!-- Arrow 2→3 -->
-  <path d="M345,100 L375,100" stroke="#7ee787" stroke-width="1.5" marker-end="url(#ag)">
-    <animate attributeName="opacity" values="0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.18;0.22;0.25;1"/>
-  </path>
+  <!-- Arrow 2→3 with chaining label -->
+  <line x1="356" y1="141" x2="386" y2="141" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-green)"/>
+  <text x="371" y="135" fill="#3fb950" text-anchor="middle" font-size="9">"ref-4492"</text>
 
-  <!-- Stage 3: GATE — compliance -->
-  <g>
-    <rect x="375" y="72" width="130" height="56" rx="6" fill="#2a1f0a" stroke="#ffa657" stroke-width="2">
-      <animate attributeName="stroke-opacity" values="0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.23;0.27;0.3;1"/>
-    </rect>
-    <text x="440" y="91" fill="#ffa657" text-anchor="middle" font-size="10" font-weight="bold">Stage 3 ⏸ GATE</text>
-    <text x="440" y="106" fill="#c9d1d9" text-anchor="middle" font-size="9">notifyCompliance</text>
-    <text x="440" y="120" fill="#ffa657" text-anchor="middle" font-size="8">awaiting approval</text>
+  <!-- Stage 3: GATE -->
+  <g filter="url(#glow-orange)">
+    <rect x="386" y="105" width="148" height="72" rx="8" fill="#1f1610" stroke="#f0883e" stroke-width="2"/>
+    <rect x="386" y="105" width="148" height="22" rx="8" fill="#3d2108"/>
+    <rect x="386" y="119" width="148" height="8" fill="#3d2108"/>
+    <text x="460" y="121" fill="#f0883e" text-anchor="middle" font-size="10" font-weight="700">STAGE 3  ⏸ GATE</text>
+    <text x="460" y="141" fill="#e6edf3" text-anchor="middle" font-size="12" font-weight="600">notifyCompliance</text>
+    <text x="460" y="158" fill="#f0883e" text-anchor="middle" font-size="10">@Gate(approvalRequired</text>
+    <text x="460" y="170" fill="#f0883e" text-anchor="middle" font-size="10">=true)</text>
   </g>
 
-  <!-- GATE label -->
-  <text x="440" y="152" fill="#ffa657" text-anchor="middle" font-size="11" font-weight="bold">
-    <animate attributeName="opacity" values="0;0;0;0;1;1;1;1;0;0" dur="8s" repeatCount="indefinite" keyTimes="0;0.28;0.3;0.32;0.35;0.42;0.5;0.52;0.55;1"/>
-    POST /sagacity/workflows/{id}/gates/notifyCompliance/approve
-  </text>
+  <!-- Gate approval callout -->
+  <rect x="386" y="188" width="148" height="28" rx="5" fill="#161d2b" stroke="#58a6ff" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="460" y="200" fill="#58a6ff" text-anchor="middle" font-size="9">POST /workflows/{id}/</text>
+  <text x="460" y="211" fill="#58a6ff" text-anchor="middle" font-size="9">gates/notifyCompliance/approve</text>
 
-  <!-- Gate approved arrow 3→4 -->
-  <path d="M505,100 L535,100" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ab)">
-    <animate attributeName="opacity" values="0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.5;0.53;0.55;0.57;0.6;1"/>
-  </path>
-  <text x="520" y="93" fill="#58a6ff" text-anchor="middle" font-size="8">
-    <animate attributeName="opacity" values="0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.5;0.53;0.55;0.57;0.6;1"/>
-    ✓ approved
-  </text>
+  <!-- Arrow 3→4 (approved) -->
+  <line x1="534" y1="141" x2="564" y2="141" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-blue)"/>
+  <text x="549" y="135" fill="#58a6ff" text-anchor="middle" font-size="9">approved</text>
 
   <!-- Stage 4: sendConfirmation -->
-  <g>
-    <animate attributeName="opacity" values="0;0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.57;0.6;0.62;0.64;0.67;0.7;1"/>
-    <rect x="535" y="72" width="130" height="56" rx="6" fill="#1a2332" stroke="#7ee787" stroke-width="2"/>
-    <text x="600" y="91" fill="#7ee787" text-anchor="middle" font-size="10" font-weight="bold">Stage 4 ✅</text>
-    <text x="600" y="106" fill="#c9d1d9" text-anchor="middle" font-size="9">sendConfirmation</text>
-    <text x="600" y="120" fill="#7ee787" text-anchor="middle" font-size="8">COMPLETED</text>
+  <g filter="url(#shadow)">
+    <rect x="564" y="105" width="148" height="72" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <rect x="564" y="105" width="148" height="22" rx="8" fill="#1a3a24"/>
+    <rect x="564" y="119" width="148" height="8" fill="#1a3a24"/>
+    <text x="638" y="121" fill="#3fb950" text-anchor="middle" font-size="10" font-weight="700">STAGE 4  ✓ COMPLETED</text>
+    <text x="638" y="141" fill="#e6edf3" text-anchor="middle" font-size="12" font-weight="600">sendConfirmation</text>
+    <text x="638" y="158" fill="#8b949e" text-anchor="middle" font-size="10">email sent to customer</text>
+    <text x="638" y="170" fill="#3fb950" text-anchor="middle" font-size="10">✓ workflow complete</text>
   </g>
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- COMPENSATION PATH (what happens when stage 2 fails instead)    -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- ─── SECTION LABEL: FAILURE PATH ───────────────────────────────── -->
+  <text x="30" y="242" fill="#f85149" font-size="11" font-weight="600" letter-spacing="0.5">FAILURE PATH — if stage 2 throws</text>
+  <line x1="30" y1="247" x2="700" y2="247" stroke="#21262d" stroke-width="1"/>
 
-  <!-- "What if stage 2 fails?" label -->
-  <text x="280" y="188" fill="#8b949e" text-anchor="middle" font-size="10" font-style="italic">
-    <animate attributeName="opacity" values="0;0;0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.7;0.72;0.73;0.74;0.75;0.76;0.78;1"/>
-    if stage 2 fails → compensate in reverse
-  </text>
+  <!-- Arrow from stage 2 down to failure node -->
+  <line x1="282" y1="177" x2="282" y2="258" stroke="#f85149" stroke-width="1.5" marker-end="url(#arr-red)"/>
 
-  <!-- Failed stage 2 box -->
-  <g>
-    <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.74;0.76;0.77;0.78;0.79;0.8;0.81;0.83;1"/>
-    <rect x="215" y="200" width="130" height="46" rx="6" fill="#2d1117" stroke="#ff7b72" stroke-width="1.5"/>
-    <text x="280" y="219" fill="#ff7b72" text-anchor="middle" font-size="10">Stage 2 ❌ FAILED</text>
-    <text x="280" y="234" fill="#c9d1d9" text-anchor="middle" font-size="9">issueRefund throws</text>
+  <!-- Stage 2 FAILED node -->
+  <g filter="url(#shadow)">
+    <rect x="208" y="258" width="148" height="60" rx="8" fill="#1f1215" stroke="#f85149" stroke-width="1.5"/>
+    <rect x="208" y="258" width="148" height="20" rx="8" fill="#3d0f12"/>
+    <rect x="208" y="270" width="148" height="8" fill="#3d0f12"/>
+    <text x="282" y="272" fill="#f85149" text-anchor="middle" font-size="10" font-weight="700">STAGE 2  ✗ FAILED</text>
+    <text x="282" y="292" fill="#e6edf3" text-anchor="middle" font-size="11">issueRefund throws</text>
+    <text x="282" y="308" fill="#8b949e" text-anchor="middle" font-size="10">→ compensation triggered</text>
   </g>
 
-  <!-- Compensation arrow 2: undo stage 1 -->
-  <path d="M215,235 L185,235" stroke="#ffa657" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ao)">
-    <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.8;0.82;0.83;0.84;0.85;0.86;0.87;0.88;0.9;1"/>
-  </path>
+  <!-- Compensation reverse arrow 2→1 -->
+  <path d="M208,300 L178,300 L104,300" stroke="#f0883e" stroke-width="1.5" stroke-dasharray="6,3" fill="none" marker-end="url(#arr-orange)"/>
+  <text x="155" y="292" fill="#f0883e" text-anchor="middle" font-size="9">⟲ compensate in reverse</text>
 
-  <!-- Compensate stage 1 box -->
-  <g>
-    <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.85;0.87;0.88;0.89;0.9;0.91;0.92;0.93;0.95;1"/>
-    <rect x="55" y="212" width="130" height="46" rx="6" fill="#1a1500" stroke="#ffa657" stroke-width="1.5"/>
-    <text x="120" y="231" fill="#ffa657" text-anchor="middle" font-size="10">⟲ Compensate 1</text>
-    <text x="120" y="246" fill="#c9d1d9" text-anchor="middle" font-size="9">cancelValidation()</text>
+  <!-- Compensate stage 2 node -->
+  <g filter="url(#shadow)">
+    <rect x="208" y="340" width="148" height="58" rx="8" fill="#1a1407" stroke="#f0883e" stroke-width="1.5"/>
+    <rect x="208" y="340" width="148" height="20" rx="8" fill="#3d2a00"/>
+    <rect x="208" y="352" width="148" height="8" fill="#3d2a00"/>
+    <text x="282" y="354" fill="#f0883e" text-anchor="middle" font-size="10" font-weight="700">⟲ COMPENSATE 2</text>
+    <text x="282" y="373" fill="#e6edf3" text-anchor="middle" font-size="11">reverseRefund()</text>
+    <text x="282" y="389" fill="#8b949e" text-anchor="middle" font-size="10">ctx.result() = "ref-4492"</text>
   </g>
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- JOURNAL (right panel)                                          -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- Arrow comp2 → comp1 -->
+  <line x1="208" y1="369" x2="178" y2="369" stroke="#f0883e" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <line x1="104" y1="335" x2="104" y2="369" stroke="#f0883e" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr-orange)"/>
+  <line x1="178" y1="369" x2="104" y2="369" stroke="#f0883e" stroke-width="1.5" stroke-dasharray="6,3"/>
 
-  <g>
-    <animate attributeName="opacity" values="0;0;0;0;0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.6;0.63;0.65;0.67;0.7;0.73;1"/>
-    <rect x="680" y="55" width="162" height="320" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-    <text x="761" y="76" fill="#58a6ff" text-anchor="middle" font-size="10" font-weight="bold">📋 Tamper-evident Journal</text>
-    <!-- entries -->
-    <text x="690" y="96"  fill="#7ee787" font-size="9">#1 validateRefund  INTENT</text>
-    <text x="690" y="111" fill="#7ee787" font-size="9">#2 validateRefund  EXECUTED</text>
-    <text x="690" y="126" fill="#7ee787" font-size="9">#3 issueRefund     INTENT</text>
-    <text x="690" y="141" fill="#7ee787" font-size="9">#4 issueRefund     EXECUTED</text>
-    <text x="690" y="156" fill="#ffa657" font-size="9">#5 notifyCompliance AWAITING</text>
-    <text x="690" y="171" fill="#58a6ff" font-size="9">#6 notifyCompliance APPROVED</text>
-    <text x="690" y="186" fill="#7ee787" font-size="9">#7 sendConfirmation EXECUTED</text>
-    <!-- divider -->
-    <line x1="690" y1="198" x2="833" y2="198" stroke="#30363d" stroke-width="1"/>
-    <text x="761" y="213" fill="#8b949e" text-anchor="middle" font-size="9" font-style="italic">SHA-256 hash chain</text>
-    <text x="761" y="227" fill="#8b949e" text-anchor="middle" font-size="9">each entry links to previous</text>
-    <text x="761" y="241" fill="#8b949e" text-anchor="middle" font-size="9">tamper detection ✓</text>
-    <line x1="690" y1="252" x2="833" y2="252" stroke="#30363d" stroke-width="1"/>
-    <text x="761" y="268" fill="#8b949e" text-anchor="middle" font-size="9">EU AI Act Article 12 ✓</text>
-    <!-- stage chaining callout -->
-    <line x1="690" y1="280" x2="833" y2="280" stroke="#30363d" stroke-width="1"/>
-    <text x="761" y="296" fill="#8b949e" text-anchor="middle" font-size="9" font-weight="bold">Stage output chaining</text>
-    <text x="761" y="310" fill="#8b949e" text-anchor="middle" font-size="9">stage 1 return value →</text>
-    <text x="761" y="324" fill="#8b949e" text-anchor="middle" font-size="9">stage 2 input param</text>
-    <text x="761" y="338" fill="#8b949e" text-anchor="middle" font-size="9">(injected automatically)</text>
-    <!-- startup validation callout -->
-    <line x1="690" y1="350" x2="833" y2="350" stroke="#30363d" stroke-width="1"/>
-    <text x="761" y="366" fill="#8b949e" text-anchor="middle" font-size="9" font-weight="bold">Topology validation</text>
-    <text x="761" y="380" fill="#8b949e" text-anchor="middle" font-size="9">bad definitions crash</text>
-    <text x="761" y="394" fill="#ff7b72" text-anchor="middle" font-size="9">at startup, not runtime</text>
+  <!-- Compensate stage 1 node -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="335" width="148" height="58" rx="8" fill="#1a1407" stroke="#f0883e" stroke-width="1.5"/>
+    <rect x="30" y="335" width="148" height="20" rx="8" fill="#3d2a00"/>
+    <rect x="30" y="347" width="148" height="8" fill="#3d2a00"/>
+    <text x="104" y="349" fill="#f0883e" text-anchor="middle" font-size="10" font-weight="700">⟲ COMPENSATE 1</text>
+    <text x="104" y="368" fill="#e6edf3" text-anchor="middle" font-size="11">cancelValidation()</text>
+    <text x="104" y="384" fill="#8b949e" text-anchor="middle" font-size="10">ctx.result() = "val-8821"</text>
   </g>
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- ANNOTATIONS LEGEND                                             -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-
-  <g>
-    <animate attributeName="opacity" values="0;0;1;1" dur="8s" repeatCount="indefinite" keyTimes="0;0.05;0.08;1"/>
-    <rect x="55" y="310" width="600" height="100" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-    <text x="355" y="330" fill="#8b949e" text-anchor="middle" font-size="10" font-weight="bold">How it looks in code</text>
-
-    <!-- @Workflow + @Stage -->
-    <text x="75" y="350" fill="#58a6ff" font-size="9">@Workflow("refund-approval")</text>
-    <text x="75" y="363" fill="#c9d1d9" font-size="9">public class RefundWorkflow {</text>
-    <text x="90" y="376" fill="#7ee787" font-size="9">  @Stage(order=1) @Compensable(by="cancelValidation")</text>
-    <text x="90" y="389" fill="#c9d1d9" font-size="9">  public String validateRefund(String orderId) { ... }</text>
-
-    <!-- @Gate -->
-    <text x="330" y="350" fill="#ffa657" font-size="9">  @Stage(order=3)</text>
-    <text x="330" y="363" fill="#ffa657" font-size="9">  @Gate(approvalRequired=true)</text>
-    <text x="330" y="376" fill="#c9d1d9" font-size="9">  public String notifyCompliance(String refundId) { ... }</text>
-
-    <!-- @Compensation -->
-    <text x="330" y="394" fill="#ff7b72" font-size="9">  @Compensation</text>
-    <text x="330" y="401" fill="#c9d1d9" font-size="9" baseline-shift="-4">  public void cancelValidation(CompensationContext ctx) { ... }</text>
+  <!-- FAILED result node -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="415" width="326" height="36" rx="8" fill="#1f1215" stroke="#f85149" stroke-width="1"/>
+    <text x="193" y="435" fill="#f85149" text-anchor="middle" font-size="11" font-weight="600">✗ WorkflowStatus.FAILED — all side effects undone. Evidence preserved.</text>
   </g>
 
-  <!-- Footer -->
-  <text x="430" y="484" fill="#8b949e" text-anchor="middle" font-size="10">
-    sagacity-ai.github.io/sagacity  ·  io.github.sumitvairagar:sagacity-workflows:0.3.0
-  </text>
+  <!-- ─── JOURNAL SIDEBAR ────────────────────────────────────────────── -->
+  <rect x="720" y="80" width="220" height="382" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1" filter="url(#shadow)"/>
 
-  <!-- Arrow markers -->
-  <defs>
-    <marker id="ag" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#7ee787"/>
-    </marker>
-    <marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/>
-    </marker>
-    <marker id="ao" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto-start-reverse">
-      <polygon points="8 0, 0 3, 8 6" fill="#ffa657"/>
-    </marker>
-  </defs>
+  <!-- Journal header -->
+  <rect x="720" y="80" width="220" height="34" rx="8" fill="#21262d"/>
+  <rect x="720" y="101" width="220" height="13" fill="#21262d"/>
+  <text x="830" y="102" fill="#58a6ff" text-anchor="middle" font-size="12" font-weight="700">📋  Tamper-evident Journal</text>
+
+  <!-- Journal entries -->
+  <text x="735" y="132" fill="#8b949e" font-size="10" font-weight="600">Phase</text>
+  <text x="845" y="132" fill="#8b949e" font-size="10" font-weight="600">Entry</text>
+  <line x1="728" y1="137" x2="933" y2="137" stroke="#30363d" stroke-width="1"/>
+
+  <text x="735" y="153" fill="#8b949e" font-size="10">#1</text>
+  <text x="755" y="153" fill="#7ee787" font-size="10">INTENT</text>
+  <text x="820" y="153" fill="#c9d1d9" font-size="10">validateRefund</text>
+
+  <text x="735" y="169" fill="#8b949e" font-size="10">#2</text>
+  <text x="755" y="169" fill="#3fb950" font-size="10">EXECUTED</text>
+  <text x="820" y="169" fill="#c9d1d9" font-size="10">validateRefund</text>
+
+  <text x="735" y="185" fill="#8b949e" font-size="10">#3</text>
+  <text x="755" y="185" fill="#7ee787" font-size="10">INTENT</text>
+  <text x="820" y="185" fill="#c9d1d9" font-size="10">issueRefund</text>
+
+  <text x="735" y="201" fill="#8b949e" font-size="10">#4</text>
+  <text x="755" y="201" fill="#3fb950" font-size="10">EXECUTED</text>
+  <text x="820" y="201" fill="#c9d1d9" font-size="10">issueRefund</text>
+
+  <text x="735" y="217" fill="#8b949e" font-size="10">#5</text>
+  <text x="755" y="217" fill="#f0883e" font-size="10">AWAITING</text>
+  <text x="820" y="217" fill="#c9d1d9" font-size="10">notifyCompliance</text>
+
+  <text x="735" y="233" fill="#8b949e" font-size="10">#6</text>
+  <text x="755" y="233" fill="#58a6ff" font-size="10">APPROVED</text>
+  <text x="820" y="233" fill="#c9d1d9" font-size="10">notifyCompliance</text>
+
+  <text x="735" y="249" fill="#8b949e" font-size="10">#7</text>
+  <text x="755" y="249" fill="#3fb950" font-size="10">EXECUTED</text>
+  <text x="820" y="249" fill="#c9d1d9" font-size="10">sendConfirmation</text>
+
+  <line x1="728" y1="260" x2="933" y2="260" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Hash chain info -->
+  <text x="830" y="277" fill="#8b949e" text-anchor="middle" font-size="10" font-weight="600">SHA-256 hash chain</text>
+  <text x="830" y="292" fill="#8b949e" text-anchor="middle" font-size="10">Each entry hashes the previous</text>
+  <text x="830" y="307" fill="#8b949e" text-anchor="middle" font-size="10">→ any edit is detectable</text>
+  <text x="830" y="322" fill="#7ee787" text-anchor="middle" font-size="10">EU AI Act Article 12  ✓</text>
+
+  <line x1="728" y1="332" x2="933" y2="332" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Stage chaining info -->
+  <text x="830" y="349" fill="#8b949e" text-anchor="middle" font-size="10" font-weight="600">Stage output chaining</text>
+  <text x="830" y="364" fill="#8b949e" text-anchor="middle" font-size="10">Stage N return value →</text>
+  <text x="830" y="379" fill="#8b949e" text-anchor="middle" font-size="10">Stage N+1 input param</text>
+  <text x="830" y="394" fill="#58a6ff" text-anchor="middle" font-size="10">injected automatically  ✓</text>
+
+  <line x1="728" y1="404" x2="933" y2="404" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Topology validation info -->
+  <text x="830" y="421" fill="#8b949e" text-anchor="middle" font-size="10" font-weight="600">Startup topology check</text>
+  <text x="830" y="436" fill="#8b949e" text-anchor="middle" font-size="10">Invalid definitions crash</text>
+  <text x="830" y="451" fill="#f85149" text-anchor="middle" font-size="10">at startup, not at runtime  ✓</text>
+
+  <!-- ─── FOOTER ─────────────────────────────────────────────────────── -->
+  <line x1="30" y1="472" x2="930" y2="472" stroke="#21262d" stroke-width="1"/>
+  <text x="480" y="491" fill="#8b949e" text-anchor="middle" font-size="11">sagacity-ai.github.io/sagacity</text>
+  <text x="480" y="507" fill="#30363d" text-anchor="middle" font-size="10">io.github.sumitvairagar:sagacity-spring-boot-starter:0.3.0  ·  sagacity-workflows:0.3.0</text>
+
 </svg>
