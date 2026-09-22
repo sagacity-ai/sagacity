@@ -10,8 +10,6 @@
 
 **The reliability layer for Spring AI agents.** Declarative workflows, automatic compensation, tamper-evident audit trail, and human approval gates — in annotations.
 
-> Your agent charged the card, reserved the inventory, sent the email, then failed on step four. Sagacity undoes what already happened — and produces the evidence.
-
 <!-- Animated diagram: tools execute → failure → compensation flows backward -->
 <p align="center">
   <img src="docs/saga-flow.svg" alt="Sagacity flow: execute tools, detect failure, compensate in reverse" width="800"/>
