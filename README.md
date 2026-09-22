@@ -278,7 +278,22 @@ No DataSource? Sagacity falls back to an in-memory journal (great for dev/testin
 
 ---
 
-## REST API
+## Embedded UI
+
+Add the dependency and open `http://localhost:8080/sagacity/ui`. No configuration, no separate deployment.
+
+<p align="center">
+  <img src="docs/sagacity-ui.png" alt="Sagacity embedded UI — workflow runs as node graphs with stage flow, gate approval buttons, and compensation path" width="960"/>
+</p>
+
+Three workflow cards, each showing what actually happened:
+- **refund-approval** — 3 stages connected as nodes, ⏸ gate paused at `notifyCompliance`, Approve/Reject inline
+- **payment-processing** — stage 1 completed (green) → stage 2 failed (red), compensation node showing automatic undo
+- **employee-onboarding** — all 3 stages completed (green), full pipeline successful
+
+Disable with `sagacity.ui-enabled=false`.
+
+---
 
 ### Tool-call approval (saga-level)
 

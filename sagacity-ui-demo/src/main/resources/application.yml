@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: sagacity-ui-demo
+
+server:
+  port: 8080
+
+sagacity:
+  enabled: true
+  schema-init: false   # in-memory journal, no DB needed
+  ui-enabled: true
+  approval-endpoints-enabled: true
+
+logging:
+  level:
+    dev.sagacity: INFO
+    org.springframework: WARN
