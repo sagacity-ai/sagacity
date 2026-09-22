@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sagacity</title>
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --muted:    #8b949e;
+      --text:     #e6edf3;
+      --text-dim: #c9d1d9;
+      --green:    #3fb950;
+      --green-bg: #1a3a24;
+      --amber:    #f0883e;
+      --amber-bg: #3d2a00;
+      --red:      #f85149;
+      --red-bg:   #3d0f12;
+      --blue:     #58a6ff;
+      --blue-bg:  #1a2a3d;
+      --radius:   8px;
+      --font:     'Inter', 'Segoe UI', system-ui, sans-serif;
+      --font-mono:'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ──────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-brand .logo-dot {
+      width: 20px; height: 20px;
+      background: var(--green);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-tab {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: var(--font);
+      transition: background .15s, color .15s;
+    }
+
+    .nav-tab:hover { background: #21262d; color: var(--text-dim); }
+    .nav-tab.active { background: #21262d; color: var(--text); }
+
+    .nav-refresh {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: border-color .15s, color .15s;
+    }
+
+    .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ── LAYOUT ───────────────────────────── */
+    main { padding: 24px; max-width: 1280px; margin: 0 auto; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── STAT CARDS ──────────────────────────*/
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+
+    .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .stat-card .value { font-size: 26px; font-weight: 700; margin-top: 6px; }
+    .stat-card.green .value { color: var(--green); }
+    .stat-card.amber .value { color: var(--amber); }
+    .stat-card.red .value { color: var(--red); }
+    .stat-card.blue .value { color: var(--blue); }
+
+    /* ── SECTION HEADER ───────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .section-title { font-size: 14px; font-weight: 600; color: var(--text); }
+
+    /* ── TABLE ────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 1px solid var(--border);
+      background: #161b22;
+    }
+
+    td {
+      padding: 11px 16px;
+      color: var(--text-dim);
+      border-bottom: 1px solid #21262d;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1c2128; }
+
+    .mono { font-family: var(--font-mono); font-size: 11px; }
+
+    /* ── STATUS BADGES ────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .badge-running    { background: #1a3a24; color: var(--green); }
+    .badge-completed  { background: #1a3a24; color: var(--green); }
+    .badge-gate       { background: var(--amber-bg); color: var(--amber); }
+    .badge-failed     { background: var(--red-bg); color: var(--red); }
+    .badge-compensating { background: var(--amber-bg); color: var(--amber); }
+    .badge-pending    { background: var(--amber-bg); color: var(--amber); }
+
+    /* ── ACTION BUTTONS ───────────────────── */
+    .btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font);
+      transition: opacity .15s;
+    }
+
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: default; }
+
+    .btn-approve { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+    .btn-reject  { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red); }
+    .btn-view    { background: #21262d; color: var(--text-dim); border: 1px solid var(--border); }
+
+    .btn-gap { display: flex; gap: 6px; }
+
+    /* ── STAGE TIMELINE ───────────────────── */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      position: relative;
+    }
+
+    .timeline-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 28px;
+      bottom: -10px;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .timeline-dot {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .dot-completed  { background: var(--green-bg);  color: var(--green); border: 2px solid var(--green); }
+    .dot-running    { background: var(--blue-bg);   color: var(--blue);  border: 2px solid var(--blue);  }
+    .dot-gate       { background: var(--amber-bg);  color: var(--amber); border: 2px solid var(--amber); }
+    .dot-failed     { background: var(--red-bg);    color: var(--red);   border: 2px solid var(--red);   }
+    .dot-pending    { background: #21262d;           color: var(--muted); border: 2px solid var(--border);}
+
+    .timeline-content { flex: 1; padding-top: 2px; }
+    .timeline-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .timeline-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── DETAIL DRAWER ───────────────────── */
+    .detail-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 200;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .detail-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+
+    .detail-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 680px;
+      padding: 24px;
+      position: relative;
+      margin: auto;
+    }
+
+    .detail-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: none; border: none;
+      color: var(--muted); font-size: 18px;
+      cursor: pointer; line-height: 1;
+    }
+
+    .detail-close:hover { color: var(--text); }
+
+    .detail-title {
+      font-size: 15px; font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .detail-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+
+    /* ── JOURNAL TABLE ───────────────────── */
+    .journal-entry {
+      display: flex;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #21262d;
+      font-size: 12px;
+      align-items: flex-start;
+    }
+
+    .journal-entry:last-child { border-bottom: none; }
+    .journal-seq { color: var(--muted); width: 24px; flex-shrink: 0; text-align: right; font-family: var(--font-mono); }
+    .journal-phase { width: 90px; flex-shrink: 0; font-weight: 600; }
+    .journal-tool { color: var(--text-dim); flex: 1; font-family: var(--font-mono); font-size: 11px; }
+    .journal-hash { color: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+
+    .phase-INTENT       { color: #6e9f74; }
+    .phase-EXECUTED     { color: var(--green); }
+    .phase-FAILED       { color: var(--red); }
+    .phase-COMPENSATED  { color: var(--amber); }
+    .phase-COMPENSATION_FAILED { color: var(--red); }
+    .phase-AWAITING_APPROVAL   { color: var(--amber); }
+    .phase-APPROVED     { color: var(--blue); }
+    .phase-REJECTED     { color: var(--red); }
+
+    /* ── EMPTY STATE ─────────────────────── */
+    .empty {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .empty .empty-title { font-size: 15px; color: var(--text-dim); margin-bottom: 6px; }
+    .empty .empty-sub { font-size: 13px; }
+
+    /* ── TOAST ───────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: #21262d;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      max-width: 320px;
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error   { border-color: var(--red);   color: var(--red); }
+
+    /* ── VERIFY BADGE ────────────────────── */
+    .verify-ok   { color: var(--green); font-size: 12px; font-weight: 600; }
+    .verify-fail { color: var(--red);   font-size: 12px; font-weight: 600; }
+
+    /* ── APPROVAL REASON DIALOG ──────────── */
+    .reason-wrap { margin-top: 8px; }
+    .reason-input {
+      width: 100%; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text);
+      font-size: 13px; font-family: var(--font);
+      outline: none;
+    }
+    .reason-input:focus { border-color: var(--blue); }
+
+    /* ── HEADER METADATA ─────────────────── */
+    .run-id-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: #21262d;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: all;
+    }
+
+    .run-id-tag:hover { border-color: var(--blue); color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ───────────────────────────────────── -->
+<nav>
+  <a class="nav-brand" href="/sagacity/ui">
+    <span class="logo-dot">S</span>
+    Sagacity
+  </a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('workflows')">Workflows</button>
+    <button class="nav-tab" onclick="showPage('approvals')">Approvals <span id="approval-badge"></span></button>
+    <button class="nav-tab" onclick="showPage('audit')">Audit</button>
+  </div>
+  <div class="nav-refresh">
+    <span id="last-refresh" style="font-size:11px"></span>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ══════════════════════════════════════════
+       WORKFLOWS PAGE
+  ══════════════════════════════════════════ -->
+  <div id="page-workflows" class="page active">
+    <div class="stats" id="workflow-stats"></div>
+
+    <div class="section-header">
+      <span class="section-title">Workflow runs</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Workflow</th>
+            <th>Run ID</th>
+            <th>Status</th>
+            <th>Stage</th>
+            <th>Started</th>
+            <th>Completed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="workflow-rows">
+          <tr><td colspan="7"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       APPROVALS PAGE
+  ══════════════════════════════════════════ -->
+  <div id="page-approvals" class="page">
+    <div class="stats" id="approval-stats"></div>
+
+    <div class="section-header">
+      <span class="section-title">Pending gate approvals — workflow stages</span>
+    </div>
+    <div class="table-wrap" id="workflow-gate-table">
+      <table>
+        <thead>
+          <tr><th>Workflow</th><th>Run ID</th><th>Gate stage</th><th>Waiting since</th><th></th></tr>
+        </thead>
+        <tbody id="gate-rows">
+          <tr><td colspan="5"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-header" style="margin-top:8px">
+      <span class="section-title">Pending saga approvals — irreversible tools</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Saga ID</th><th>Tool</th><th>Seq</th><th>Input preview</th><th>Requested at</th><th></th></tr>
+        </thead>
+        <tbody id="saga-approval-rows">
+          <tr><td colspan="6"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       AUDIT PAGE
+  ══════════════════════════════════════════ -->
+  <div id="page-audit" class="page">
+    <div class="section-header">
+      <span class="section-title">Audit trail — enter a Saga ID or Workflow Run ID</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <input id="audit-id-input" class="reason-input" placeholder="saga-id or workflow-run-id" style="max-width:400px"/>
+      <button class="refresh-btn" onclick="loadAudit()">Look up</button>
+    </div>
+    <div id="audit-result"></div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════════════════
+     DETAIL DRAWER (workflow run)
+══════════════════════════════════════════ -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-panel">
+    <button class="detail-close" onclick="closeDetailPanel()">✕</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ── STATE ─────────────────────────────────────────────────────────
+  let workflows = [];
+  let sagaApprovals = [];
+
+  // ── ROUTING ───────────────────────────────────────────────────────
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    const tabs = document.querySelectorAll('.nav-tab');
+    const idx = ['workflows','approvals','audit'].indexOf(name);
+    if (tabs[idx]) tabs[idx].classList.add('active');
+  }
+
+  // ── LOAD ALL ──────────────────────────────────────────────────────
+  async function loadAll() {
+    await Promise.allSettled([loadWorkflows(), loadSagaApprovals()]);
+    document.getElementById('last-refresh').textContent =
+      'Updated ' + new Date().toLocaleTimeString();
+  }
+
+  // ── WORKFLOWS ─────────────────────────────────────────────────────
+  async function loadWorkflows() {
+    try {
+      const res = await fetch('/sagacity/workflows');
+      if (!res.ok) throw new Error(res.status);
+      workflows = await res.json();
+    } catch (e) {
+      workflows = [];
+    }
+    renderWorkflows();
+  }
+
+  function renderWorkflows() {
+    // Stats
+    const counts = { RUNNING: 0, PAUSED_AT_GATE: 0, COMPLETED: 0, FAILED: 0, COMPENSATING: 0 };
+    workflows.forEach(w => { if (counts[w.status] !== undefined) counts[w.status]++; });
+
+    document.getElementById('workflow-stats').innerHTML = `
+      <div class="stat-card blue"><div class="label">Running</div><div class="value">${counts.RUNNING}</div></div>
+      <div class="stat-card amber"><div class="label">Awaiting gate</div><div class="value">${counts.PAUSED_AT_GATE}</div></div>
+      <div class="stat-card green"><div class="label">Completed</div><div class="value">${counts.COMPLETED}</div></div>
+      <div class="stat-card red"><div class="label">Failed</div><div class="value">${counts.FAILED + counts.COMPENSATING}</div></div>
+      <div class="stat-card"><div class="label">Total</div><div class="value" style="color:var(--text)">${workflows.length}</div></div>
+    `;
+
+    // Update approval badge
+    const gateCount = counts.PAUSED_AT_GATE;
+    document.getElementById('approval-badge').textContent = gateCount > 0 ? ` (${gateCount})` : '';
+
+    // Table rows
+    const tbody = document.getElementById('workflow-rows');
+    if (!workflows.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty">
+        <div class="empty-icon">🔄</div>
+        <div class="empty-title">No workflow runs yet</div>
+        <div class="empty-sub">Runs will appear here once your first @Workflow executes</div>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = workflows
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      .map(w => `
+        <tr>
+          <td><strong>${esc(w.workflowName)}</strong></td>
+          <td><span class="run-id-tag" title="Click to copy" onclick="copyText('${esc(w.runId)}')">${esc(w.runId.slice(0,8))}…</span></td>
+          <td>${statusBadge(w.status)}</td>
+          <td style="color:var(--muted);font-size:12px">
+            ${w.status === 'PAUSED_AT_GATE' && w.pendingGateStageName
+              ? `<span style="color:var(--amber)">⏸ ${esc(w.pendingGateStageName)}</span>`
+              : (w.currentStageOrder > 0 ? `Stage ${w.currentStageOrder}` : '—')}
+          </td>
+          <td class="mono">${fmtTime(w.startedAt)}</td>
+          <td class="mono">${w.completedAt ? fmtTime(w.completedAt) : '—'}</td>
+          <td>
+            <div class="btn-gap">
+              ${w.status === 'PAUSED_AT_GATE' && w.pendingGateStageName ? `
+                <button class="btn btn-approve" onclick="approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Approve</button>
+                <button class="btn btn-reject"  onclick="rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Reject</button>
+              ` : ''}
+              <button class="btn btn-view" onclick="showRunDetail('${esc(w.runId)}')">Detail</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+    // Refresh gate approvals table too
+    renderGateApprovals();
+  }
+
+  // ── GATE APPROVALS ────────────────────────────────────────────────
+  function renderGateApprovals() {
+    const pending = workflows.filter(w => w.status === 'PAUSED_AT_GATE' && w.pendingGateStageName);
+    const tbody = document.getElementById('gate-rows');
+
+    document.getElementById('approval-stats').innerHTML = `
+      <div class="stat-card amber"><div class="label">Gates waiting</div><div class="value">${pending.length}</div></div>
+      <div class="stat-card amber"><div class="label">Saga approvals</div><div class="value">${sagaApprovals.length}</div></div>
+    `;
+
+    if (!pending.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">No gates waiting</div>
+        <div class="empty-sub">Workflow stages with @Gate(approvalRequired=true) appear here</div>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = pending.map(w => `
+      <tr>
+        <td><strong>${esc(w.workflowName)}</strong></td>
+        <td><span class="run-id-tag" onclick="copyText('${esc(w.runId)}')">${esc(w.runId.slice(0,8))}…</span></td>
+        <td><span style="color:var(--amber);font-weight:600">⏸ ${esc(w.pendingGateStageName)}</span></td>
+        <td class="mono">${fmtTime(w.startedAt)}</td>
+        <td>
+          <div class="btn-gap">
+            <button class="btn btn-approve" onclick="approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Approve</button>
+            <button class="btn btn-reject"  onclick="rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Reject</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── SAGA APPROVALS ────────────────────────────────────────────────
+  async function loadSagaApprovals() {
+    try {
+      const res = await fetch('/sagacity/approvals');
+      if (!res.ok) throw new Error(res.status);
+      sagaApprovals = await res.json();
+    } catch (e) {
+      sagaApprovals = [];
+    }
+    renderSagaApprovals();
+  }
+
+  function renderSagaApprovals() {
+    const tbody = document.getElementById('saga-approval-rows');
+    if (!sagaApprovals.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">No saga approvals pending</div>
+        <div class="empty-sub">IRREVERSIBLE tools waiting for approval appear here</div>
+      </div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = sagaApprovals.map(a => `
+      <tr>
+        <td class="mono">${esc(a.sagaId)}</td>
+        <td style="font-weight:600">${esc(a.toolName)}</td>
+        <td class="mono">${a.journalSeq}</td>
+        <td class="mono" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(a.input)}">${esc(a.input?.slice(0,60))}${a.input?.length > 60 ? '…' : ''}</td>
+        <td class="mono">${fmtTime(a.createdAt)}</td>
+        <td>
+          <div class="btn-gap">
+            <button class="btn btn-approve" onclick="approveSaga('${esc(a.sagaId)}',${a.journalSeq})">Approve</button>
+            <button class="btn btn-reject"  onclick="rejectSaga('${esc(a.sagaId)}',${a.journalSeq})">Reject</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── RUN DETAIL DRAWER ─────────────────────────────────────────────
+  async function showRunDetail(runId) {
+    const run = workflows.find(w => w.runId === runId);
+    if (!run) return;
+
+    const content = document.getElementById('detail-content');
+    content.innerHTML = `
+      <div class="detail-title">${esc(run.workflowName)}</div>
+      <div class="detail-subtitle">
+        <span class="run-id-tag" onclick="copyText('${esc(runId)}')">${esc(runId)}</span>
+        &nbsp; ${statusBadge(run.status)}
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div class="timeline" id="stage-timeline">
+          ${buildTimeline(run)}
+        </div>
+      </div>
+
+      ${run.failureReason ? `
+        <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:6px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--red)">
+          ✗ ${esc(run.failureReason)}
+        </div>
+      ` : ''}
+
+      <div style="border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Audit journal</div>
+        <div id="run-journal-entries">Loading journal…</div>
+      </div>
+    `;
+
+    document.getElementById('detail-overlay').classList.add('open');
+
+    // Load journal async
+    try {
+      const res = await fetch(`/sagacity/audit/${encodeURIComponent(runId)}`);
+      if (res.ok) {
+        const text = await res.text();
+        const entries = text.trim().split('\n').filter(Boolean).map(l => {
+          try { return JSON.parse(l); } catch { return null; }
+        }).filter(Boolean);
+        renderJournalEntries(entries, 'run-journal-entries');
+      } else {
+        document.getElementById('run-journal-entries').innerHTML =
+          '<span style="color:var(--muted);font-size:12px">No journal entries found for this run ID.</span>';
+      }
+    } catch {
+      document.getElementById('run-journal-entries').innerHTML =
+        '<span style="color:var(--muted);font-size:12px">Journal unavailable.</span>';
+    }
+  }
+
+  function buildTimeline(run) {
+    const completed = run.completedStages || [];
+    if (!completed.length && run.status === 'RUNNING') {
+      return `<div class="timeline-item">
+        <div class="timeline-dot dot-running">▶</div>
+        <div class="timeline-content">
+          <div class="timeline-name">Stage ${run.currentStageOrder}</div>
+          <div class="timeline-meta">Currently executing</div>
+        </div>
+      </div>`;
+    }
+    const items = completed.map((name, i) => `
+      <div class="timeline-item">
+        <div class="timeline-dot dot-completed">✓</div>
+        <div class="timeline-content">
+          <div class="timeline-name">${esc(name)}</div>
+          <div class="timeline-meta">Completed</div>
+        </div>
+      </div>
+    `).join('');
+
+    const gate = run.status === 'PAUSED_AT_GATE' && run.pendingGateStageName ? `
+      <div class="timeline-item">
+        <div class="timeline-dot dot-gate">⏸</div>
+        <div class="timeline-content">
+          <div class="timeline-name">${esc(run.pendingGateStageName)}</div>
+          <div class="timeline-meta" style="color:var(--amber)">Paused — awaiting approval</div>
+          <div class="btn-gap" style="margin-top:8px">
+            <button class="btn btn-approve" onclick="approveGate('${esc(run.runId)}','${esc(run.pendingGateStageName)}');closeDetailPanel()">Approve</button>
+            <button class="btn btn-reject" onclick="rejectGate('${esc(run.runId)}','${esc(run.pendingGateStageName)}');closeDetailPanel()">Reject</button>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    const failed = run.status === 'FAILED' || run.status === 'COMPENSATING' ? `
+      <div class="timeline-item">
+        <div class="timeline-dot dot-failed">✗</div>
+        <div class="timeline-content">
+          <div class="timeline-name">Failed</div>
+          <div class="timeline-meta" style="color:var(--red)">${esc(run.failureReason || '')}</div>
+        </div>
+      </div>
+    ` : '';
+
+    return items + gate + failed;
+  }
+
+  function renderJournalEntries(entries, containerId) {
+    const el = document.getElementById(containerId);
+    if (!entries.length) {
+      el.innerHTML = '<span style="color:var(--muted);font-size:12px">No entries.</span>';
+      return;
+    }
+    el.innerHTML = entries.map(e => `
+      <div class="journal-entry">
+        <span class="journal-seq">${e.seq}</span>
+        <span class="journal-phase phase-${e.phase}">${e.phase}</span>
+        <span class="journal-tool">${esc(e.toolName)}</span>
+        <span class="journal-hash" title="${esc(e.hash)}">${e.hash?.slice(0,8)}…</span>
+      </div>
+    `).join('');
+  }
+
+  function closeDetailPanel() {
+    document.getElementById('detail-overlay').classList.remove('open');
+  }
+
+  function closeDetail(e) {
+    if (e.target === document.getElementById('detail-overlay')) closeDetailPanel();
+  }
+
+  // ── AUDIT PAGE ────────────────────────────────────────────────────
+  async function loadAudit() {
+    const id = document.getElementById('audit-id-input').value.trim();
+    if (!id) { toast('Enter a saga ID or run ID', 'error'); return; }
+
+    const el = document.getElementById('audit-result');
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px">Loading…</div>';
+
+    try {
+      const [journalRes, verifyRes] = await Promise.all([
+        fetch(`/sagacity/audit/${encodeURIComponent(id)}`),
+        fetch(`/sagacity/audit/${encodeURIComponent(id)}/verify`)
+      ]);
+
+      let entries = [];
+      if (journalRes.ok) {
+        const text = await journalRes.text();
+        entries = text.trim().split('\n').filter(Boolean).map(l => {
+          try { return JSON.parse(l); } catch { return null; }
+        }).filter(Boolean);
+      }
+
+      let verify = null;
+      if (verifyRes.ok) verify = await verifyRes.json();
+
+      if (!entries.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div>
+          <div class="empty-title">No entries found</div>
+          <div class="empty-sub">Check the saga ID or run ID</div></div>`;
+        return;
+      }
+
+      const verifyBadge = verify
+        ? (verify.valid
+            ? `<span class="verify-ok">✓ Hash chain verified — ${verify.entryCount} entries</span>`
+            : `<span class="verify-fail">✗ Chain broken at entry ${verify.breakAtIndex}: ${esc(verify.message)}</span>`)
+        : '';
+
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;font-weight:600">${entries.length} journal entries for <span class="mono">${esc(id)}</span></span>
+          ${verifyBadge}
+        </div>
+        <div class="table-wrap">
+          <div style="padding:4px 0" id="audit-entries"></div>
+        </div>
+      `;
+      renderJournalEntries(entries, 'audit-entries');
+    } catch (e) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div>
+        <div class="empty-title">Request failed</div>
+        <div class="empty-sub">${esc(String(e))}</div></div>`;
+    }
+  }
+
+  // ── GATE ACTIONS ──────────────────────────────────────────────────
+  async function approveGate(runId, stageName) {
+    try {
+      const res = await fetch(`/sagacity/workflows/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageName)}/approve`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
+      });
+      const json = await res.json();
+      if (res.ok) {
+        toast(`✓ Gate approved: ${stageName}`, 'success');
+        setTimeout(loadAll, 400);
+      } else {
+        toast(`Error: ${json.error || res.status}`, 'error');
+      }
+    } catch (e) { toast('Request failed', 'error'); }
+  }
+
+  async function rejectGate(runId, stageName) {
+    const reason = prompt(`Reason for rejecting gate "${stageName}":`);
+    if (reason === null) return;
+    try {
+      const res = await fetch(`/sagacity/workflows/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageName)}/reject`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ reason: reason || 'rejected' })
+      });
+      const json = await res.json();
+      if (res.ok) {
+        toast(`Gate rejected: ${stageName}`, 'success');
+        setTimeout(loadAll, 400);
+      } else {
+        toast(`Error: ${json.error || res.status}`, 'error');
+      }
+    } catch (e) { toast('Request failed', 'error'); }
+  }
+
+  // ── SAGA APPROVAL ACTIONS ─────────────────────────────────────────
+  async function approveSaga(sagaId, seq) {
+    const approver = prompt('Your name or email (recorded in audit trail):');
+    if (approver === null) return;
+    try {
+      const res = await fetch(`/sagacity/approve/${encodeURIComponent(sagaId)}/${seq}`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ approver: approver || 'unknown' })
+      });
+      if (res.ok) {
+        toast('✓ Approved — call /resume to execute', 'success');
+        setTimeout(loadAll, 400);
+      } else {
+        const j = await res.json();
+        toast(`Error: ${j.error || res.status}`, 'error');
+      }
+    } catch (e) { toast('Request failed', 'error'); }
+  }
+
+  async function rejectSaga(sagaId, seq) {
+    const approver = prompt('Your name or email:');
+    if (approver === null) return;
+    try {
+      const res = await fetch(`/sagacity/reject/${encodeURIComponent(sagaId)}/${seq}`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ approver: approver || 'unknown' })
+      });
+      if (res.ok) {
+        toast('Rejected — compensation triggered', 'success');
+        setTimeout(loadAll, 400);
+      } else {
+        const j = await res.json();
+        toast(`Error: ${j.error || res.status}`, 'error');
+      }
+    } catch (e) { toast('Request failed', 'error'); }
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────────────
+  function statusBadge(status) {
+    const map = {
+      RUNNING:       ['badge-running',     'Running'],
+      PAUSED_AT_GATE:['badge-gate',        '⏸ Gate'],
+      COMPLETED:     ['badge-completed',   'Completed'],
+      FAILED:        ['badge-failed',      'Failed'],
+      COMPENSATING:  ['badge-compensating','Compensating'],
+    };
+    const [cls, label] = map[status] || ['badge-pending', status];
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { month:'short', day:'numeric',
+        hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    } catch { return iso; }
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function copyText(text) {
+    navigator.clipboard?.writeText(text).then(() => toast('Copied', 'success'));
+  }
+
+  let toastTimer;
+  function toast(msg, type) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show ' + (type || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────
+  loadAll();
+  setInterval(loadAll, 15000); // auto-refresh every 15s
+</script>
+
+</body>
+</html>

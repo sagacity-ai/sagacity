@@ -19,6 +19,12 @@ public class SagacityProperties {
 	/** Whether the approval REST endpoints are exposed. */
 	private boolean approvalEndpointsEnabled = true;
 
+	/**
+	 * Whether the embedded UI is served at {@code /sagacity/ui}.
+	 * Enabled by default. Disable with {@code sagacity.ui-enabled=false}.
+	 */
+	private boolean uiEnabled = true;
+
 	/** Cloud journal configuration. Activates when {@code sagacity.cloud.api-key} is set. */
 	private Cloud cloud = new Cloud();
 
@@ -33,6 +39,9 @@ public class SagacityProperties {
 
 	public boolean isApprovalEndpointsEnabled() { return approvalEndpointsEnabled; }
 	public void setApprovalEndpointsEnabled(boolean approvalEndpointsEnabled) { this.approvalEndpointsEnabled = approvalEndpointsEnabled; }
+
+	public boolean isUiEnabled() { return uiEnabled; }
+	public void setUiEnabled(boolean uiEnabled) { this.uiEnabled = uiEnabled; }
 
 	public Cloud getCloud() { return cloud; }
 	public void setCloud(Cloud cloud) { this.cloud = cloud; }

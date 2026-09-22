@@ -109,6 +109,20 @@ public class SagacityAutoConfiguration {
 		return new SagacityApprovalController(sagacity);
 	}
 
+	/**
+	 * Embedded UI served at {@code /sagacity/ui}.
+	 * Enabled by default when approval endpoints are enabled.
+	 * Disable with {@code sagacity.ui-enabled=false}.
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+	@ConditionalOnProperty(prefix = "sagacity", name = "ui-enabled",
+			havingValue = "true", matchIfMissing = true)
+	public SagacityUiController sagacityUiController() {
+		return new SagacityUiController();
+	}
+
 	private void initSchema(DataSource dataSource) {
 		try (var conn = dataSource.getConnection(); var stmt = conn.createStatement()) {
 			stmt.execute("""

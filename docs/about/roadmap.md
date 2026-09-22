@@ -88,22 +88,69 @@ shifts from "SAGA pattern for Spring AI" to **"the reliability layer for Spring 
   validation at startup, graceful degradation patterns
 - **202 tests total across the full repo, all passing.**
 
-## M5 — Ecosystem (post-launch, driven by feedback)
+## Free vs Paid — feature tier decisions
+
+This table is the product authority for what ships in the open-source library vs what
+requires Sagacity Cloud. It is locked in here so future development decisions are
+consistent.
+
+### Free forever (open-source library)
+
+| Feature | Status | Notes |
+|---|---|---|
+| `@Compensable` / `@Compensation` annotations | ✅ shipped | |
+| Reverse-order automatic compensation | ✅ shipped | |
+| `@Workflow` / `@Stage` / `@Gate` / `@Check` | ✅ shipped v0.3.0 | |
+| Stage output chaining | ✅ shipped v0.3.0 | |
+| Human approval gates (REST endpoints) | ✅ shipped | No auth — dev/trusted-network use |
+| SHA-256 tamper-evident hash chain journal | ✅ shipped | |
+| Universal JDBC journal (Postgres, MySQL, H2, etc.) | ✅ shipped | |
+| Hash chain verification endpoint | ✅ shipped | |
+| Audit export (JSON Lines) | ✅ shipped | |
+| Startup topology validation | ✅ shipped v0.3.0 | |
+| Tool-level retry with exponential backoff | ✅ shipped | |
+| **Embedded UI** — workflow run list + stage timeline | 📋 M5 | Zero-config, ships in starter |
+| **Embedded UI** — approve/reject gates from browser | 📋 M5 | No login required, local/trusted use |
+| **Embedded UI** — audit trail viewer with hash status | 📋 M5 | |
+| **Embedded UI** — saga approval queue | 📋 M5 | |
+| JDBC-backed durable workflow state | 📋 v0.4 | In-memory only in v0.3 |
+| LangChain4j adapter | 📋 future | |
+
+### Paid (Sagacity Cloud)
+
+| Feature | Rationale |
+|---|---|
+| Multi-user access with named approver identity | Embedded UI has no auth — Cloud adds login + who-approved-what |
+| RBAC — role-based access control | Enterprises require it; never give this away |
+| SSO / SAML integration | Every enterprise security policy requires SSO |
+| Hosted journal (off your database) | `CloudSideEffectJournal` already exists; retention SLA requires Cloud |
+| Audit export to PDF / CSV for regulators | Compliance officers need formatted exports, not raw JSON Lines |
+| Cross-deployment workflow history | Embedded UI loses in-memory state on restart |
+| Alerting — Slack/email when gate waits >1h, compensation fails | Operational feature for production teams |
+| Search across sagas and workflow runs | Query and filter across all runs, not just current JVM |
+| Compliance reports per time period | EU AI Act Article 12 formatted reports |
+| Data retention SLA | Configurable retention with guarantee |
+
+**The line:** the embedded UI handles everything a single developer or small trusted team needs in development and staging. Cloud is what a production enterprise team needs when multiple people need access, auth, retention, and regulatory reporting.
+
+## M5 — Embedded UI + JDBC durable state (v0.4.0 target)
+- **Embedded UI** — zero-config dashboard served at `/sagacity/ui` by the Spring Boot starter.
+  No deployment, no separate process, no login required. Ships as static HTML in the JAR.
+  - Workflow run list: status badges, stage progress, started/completed timestamps
+  - Stage timeline per run: which completed, which failed, which is waiting at a gate
+  - Approve / Reject pending gates from the browser — no curl, no Postman
+  - Saga approval queue: pending IRREVERSIBLE tool approvals with payload preview
+  - Audit trail viewer: journal entries per saga with inline hash verification status
+- **JDBC-backed durable workflow state** — replace in-memory `WorkflowRun` store with a
+  JDBC table. Workflow state survives JVM restarts. Same DataSource as the journal.
 - **Typed compensation methods** — auto-bind original tool parameters and result
-  to the compensation method signature (no more manual JSON parsing). Eliminates
-  `CompensationContext` string wrangling for the common case.
-- **Approval dashboard UI** — the enterprise killer feature. Visual approval
-  queue, saga timeline, audit view. React/Vue, hosted on Sagacity Cloud.
-- **Authenticated approver identity** — Spring Security integration for approval
-  endpoints (currently unauthenticated by default, documented in threat model).
-- **Approval expiry and policy versioning** — time-bound approvals, policy
-  version recorded in journal for compliance.
-- **DBOS integration** — durable compensation runs (`sagacity-dbos`).
+  to the compensation method signature. Eliminates `CompensationContext` string wrangling.
+- **Approval expiry** — time-bound gates; workflow fails automatically if gate not approved within N seconds.
 - **LangChain4j adapter** — `sagacity-langchain4j`.
 - **Streaming tool-call support** — currently synchronous `ChatClient` flows only.
 - **MCP tool support** — compensations for MCP-server tools declared client-side.
-- **Head-hash anchoring** — so tail truncation and wholesale chain rewriting
-  become detectable (currently only edited rows are detected).
+- **Head-hash anchoring** — detect tail truncation and wholesale chain rewriting.
 
 ## Explicitly deferred
 - Python/TS ports; agent-to-agent saga propagation; automatic undo inference.
+- SSO/SAML, RBAC, multi-user approval workflows → Sagacity Cloud only.
