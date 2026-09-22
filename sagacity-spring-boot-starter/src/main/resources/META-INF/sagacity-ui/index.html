@@ -6,142 +6,91 @@
   <title>Sagacity</title>
   <style>
     :root {
-      --bg:        #f6f8fa;
-      --surface:   #ffffff;
-      --surface2:  #f6f8fa;
-      --border:    #d0d7de;
+      --bg:           #f6f8fa;
+      --surface:      #ffffff;
+      --surface2:     #f6f8fa;
+      --border:       #d0d7de;
       --border-light: #eaeef2;
-      --muted:     #636c76;
-      --text:      #1f2328;
-      --text-dim:  #24292f;
-      --green:     #1a7f37;
-      --green-bg:  #dafbe1;
+      --muted:        #636c76;
+      --text:         #1f2328;
+      --text-dim:     #24292f;
+      --green:        #1a7f37;
+      --green-bg:     #dafbe1;
       --green-border: #82e09c;
-      --amber:     #9a6700;
-      --amber-bg:  #fff8c5;
+      --amber:        #9a6700;
+      --amber-bg:     #fff8c5;
       --amber-border: #d4a72c;
-      --red:       #cf222e;
-      --red-bg:    #ffebe9;
-      --red-border:#ffa198;
-      --blue:      #0969da;
-      --blue-bg:   #ddf4ff;
-      --blue-border:#54aeff;
-      --purple:    #8250df;
-      --purple-bg: #fbefff;
-      --radius:    8px;
-      --font:      'Inter', 'Segoe UI', system-ui, sans-serif;
-      --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-      --shadow-sm: 0 1px 3px rgba(31,35,40,.06), 0 1px 2px rgba(31,35,40,.04);
-      --shadow-md: 0 3px 8px rgba(31,35,40,.08), 0 1px 3px rgba(31,35,40,.05);
+      --red:          #cf222e;
+      --red-bg:       #ffebe9;
+      --red-border:   #ffa198;
+      --blue:         #0969da;
+      --blue-bg:      #ddf4ff;
+      --blue-border:  #54aeff;
+      --orange:       #9a4700;
+      --orange-bg:    #fff3e0;
+      --orange-border:#f0883e;
+      --radius:       8px;
+      --font:         'Inter', 'Segoe UI', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+      --shadow-sm:    0 1px 3px rgba(31,35,40,.06), 0 1px 2px rgba(31,35,40,.04);
+      --shadow-md:    0 4px 12px rgba(31,35,40,.1), 0 2px 4px rgba(31,35,40,.06);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    /* ── NAV ──────────────────────────────────── */
+    /* ── NAV ──────────────────────────────── */
     nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      height: 52px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 52px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm);
     }
 
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      text-decoration: none;
-    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none; }
 
     .logo-mark {
       width: 28px; height: 28px;
       background: linear-gradient(135deg, #1a7f37, #0969da);
-      border-radius: 7px;
-      display: grid;
-      place-items: center;
-      font-size: 13px;
-      color: #fff;
-      font-weight: 800;
-      letter-spacing: -1px;
+      border-radius: 7px; display: grid; place-items: center;
+      font-size: 13px; color: #fff; font-weight: 800; letter-spacing: -1px;
     }
 
     .nav-tabs { display: flex; gap: 2px; }
 
     .nav-tab {
-      padding: 6px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      color: var(--muted);
-      cursor: pointer;
-      border: none;
-      background: none;
-      font-family: var(--font);
+      padding: 6px 16px; border-radius: 6px; font-size: 13px;
+      color: var(--muted); cursor: pointer; border: none; background: none;
+      font-family: var(--font); font-weight: 500;
       transition: background .12s, color .12s;
-      font-weight: 500;
     }
 
     .nav-tab:hover { background: var(--bg); color: var(--text); }
     .nav-tab.active { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
 
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .nav-right { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
 
     .btn-refresh {
       display: flex; align-items: center; gap: 5px;
-      padding: 5px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--muted);
-      font-size: 12px;
-      cursor: pointer;
-      font-family: var(--font);
-      font-weight: 500;
+      padding: 5px 12px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--muted); font-size: 12px; cursor: pointer; font-family: var(--font); font-weight: 500;
       transition: border-color .12s, color .12s, background .12s;
     }
 
     .btn-refresh:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
 
-    /* ── LAYOUT ───────────────────────────────── */
+    /* ── LAYOUT ───────────────────────────── */
     main { padding: 20px 24px; max-width: 1360px; margin: 0 auto; }
-
     .page { display: none; }
     .page.active { display: block; }
 
-    /* ── STAT STRIP ───────────────────────────── */
-    .stats {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
+    /* ── STAT STRIP ──────────────────────── */
+    .stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
 
     .stat {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 18px;
-      min-width: 110px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 20px; min-width: 110px;
       box-shadow: var(--shadow-sm);
     }
 
@@ -152,443 +101,259 @@
     .stat.red   .stat-value { color: var(--red); }
     .stat.blue  .stat-value { color: var(--blue); }
 
-    /* ── WORKFLOW CARDS GRID ──────────────────── */
-    .workflow-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+    /* ── TABLE ────────────────────────────── */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      margin-bottom: 20px; box-shadow: var(--shadow-sm);
     }
 
-    .workflow-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      box-shadow: var(--shadow-sm);
-      transition: box-shadow .15s;
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    th {
+      text-align: left; padding: 10px 16px;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 1px solid var(--border); background: var(--surface2);
     }
 
-    .workflow-card:hover { box-shadow: var(--shadow-md); }
-
-    .wf-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 14px;
+    td {
+      padding: 11px 16px; color: var(--text-dim);
+      border-bottom: 1px solid var(--border-light); vertical-align: middle;
     }
 
-    .wf-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); cursor: pointer; }
 
-    .wf-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 3px;
-    }
+    .mono { font-family: var(--font-mono); font-size: 11px; }
 
-    .wf-id {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--muted);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      cursor: pointer;
-    }
-
-    .wf-id:hover { border-color: var(--blue); color: var(--blue); }
-
-    .wf-time {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    /* ── FLOW GRAPH ───────────────────────────── */
-    .flow {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      overflow-x: auto;
-      padding: 4px 0 10px;
-      position: relative;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .flow::-webkit-scrollbar { height: 4px; }
-    .flow::-webkit-scrollbar-track { background: transparent; }
-    .flow::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    /* Compensation path sits below the main flow */
-    .flow-wrap { position: relative; }
-
-    .flow-node {
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      position: relative;
-    }
-
-    .node-box {
-      border-radius: 8px;
-      border: 1.5px solid;
-      padding: 8px 14px;
-      min-width: 120px;
-      max-width: 160px;
-      text-align: center;
-      position: relative;
-      cursor: default;
-    }
-
-    .node-order {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      margin-bottom: 2px;
-      opacity: .7;
-    }
-
-    .node-name {
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .node-tag {
-      font-size: 9px;
-      margin-top: 2px;
-      opacity: .75;
-      font-family: var(--font-mono);
-    }
-
-    /* Node states */
-    .node-completed {
-      background: var(--green-bg);
-      border-color: var(--green-border);
-      color: var(--green);
-    }
-
-    .node-running {
-      background: var(--blue-bg);
-      border-color: var(--blue-border);
-      color: var(--blue);
-    }
-
-    .node-gate {
-      background: var(--amber-bg);
-      border-color: var(--amber-border);
-      color: var(--amber);
-    }
-
-    .node-failed {
-      background: var(--red-bg);
-      border-color: var(--red-border);
-      color: var(--red);
-    }
-
-    .node-pending {
-      background: var(--surface2);
-      border-color: var(--border);
-      border-style: dashed;
-      color: var(--muted);
-    }
-
-    .node-compensation {
-      background: #fff3e0;
-      border-color: #f0883e;
-      color: #9a4700;
-    }
-
-    /* ── ARROWS ───────────────────────────────── */
-    .flow-arrow {
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 36px;
-      position: relative;
-    }
-
-    .arrow-line {
-      width: 24px;
-      height: 1.5px;
-      background: var(--border);
-      position: relative;
-    }
-
-    .arrow-line::after {
-      content: '';
-      position: absolute;
-      right: -4px;
-      top: -3px;
-      border: 4px solid transparent;
-      border-left-color: var(--border);
-    }
-
-    .arrow-line.green { background: var(--green); }
-    .arrow-line.green::after { border-left-color: var(--green); }
-
-    .arrow-line.blue { background: var(--blue); border-style: dashed; background: repeating-linear-gradient(90deg,var(--blue) 0,var(--blue) 4px,transparent 4px,transparent 8px); }
-    .arrow-line.blue::after { border-left-color: var(--blue); }
-
-    .arrow-label {
-      font-size: 9px;
-      color: var(--muted);
-      white-space: nowrap;
-      margin-top: 2px;
-    }
-
-    /* ── COMPENSATION ROW ─────────────────────── */
-    .comp-row {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px dashed var(--border-light);
-    }
-
-    .comp-label {
-      font-size: 10px;
-      color: var(--muted);
-      font-weight: 600;
-      margin-right: 8px;
-      white-space: nowrap;
-    }
-
-    .comp-arrow {
-      width: 24px;
-      height: 1.5px;
-      background: repeating-linear-gradient(90deg,#f0883e 0,#f0883e 4px,transparent 4px,transparent 8px);
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    .comp-arrow.left::before {
-      content: '';
-      position: absolute;
-      left: -4px;
-      top: -3px;
-      border: 4px solid transparent;
-      border-right-color: #f0883e;
-    }
-
-    /* ── CARD FOOTER ──────────────────────────── */
-    .wf-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border-light);
-    }
-
-    .wf-failure {
-      font-size: 11px;
-      color: var(--red);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      max-width: 280px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* ── BADGES ───────────────────────────────── */
+    /* ── BADGES ───────────────────────────── */
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 9px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600;
     }
-
     .badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+    .badge-completed    { background: var(--green-bg);  color: var(--green); }
+    .badge-running      { background: var(--blue-bg);   color: var(--blue); }
+    .badge-gate         { background: var(--amber-bg);  color: var(--amber); }
+    .badge-failed       { background: var(--red-bg);    color: var(--red); }
+    .badge-compensating { background: var(--orange-bg); color: var(--orange); }
 
-    .badge-completed   { background: var(--green-bg);  color: var(--green); }
-    .badge-running     { background: var(--blue-bg);   color: var(--blue); }
-    .badge-gate        { background: var(--amber-bg);  color: var(--amber); }
-    .badge-failed      { background: var(--red-bg);    color: var(--red); }
-    .badge-compensating{ background: #fff3e0;           color: #9a4700; }
-
-    /* ── ACTION BUTTONS ───────────────────────── */
+    /* ── BUTTONS ──────────────────────────── */
     .btn {
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1.5px solid;
-      font-family: var(--font);
-      transition: opacity .12s, background .12s;
+      padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid; font-family: var(--font);
+      transition: opacity .12s; white-space: nowrap;
     }
-
     .btn:hover { opacity: .85; }
-    .btn:disabled { opacity: .4; cursor: default; }
     .btn-approve { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
     .btn-reject  { background: var(--red-bg);   color: var(--red);   border-color: var(--red-border); }
     .btn-detail  { background: var(--surface2); color: var(--muted); border-color: var(--border); }
     .btn-gap     { display: flex; gap: 6px; }
 
-    /* ── APPROVALS / AUDIT TABLE ──────────────── */
-    .table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      margin-bottom: 20px;
+    /* ── LEGEND ───────────────────────────── */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      margin-bottom: 16px; padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 12px; color: var(--muted);
       box-shadow: var(--shadow-sm);
     }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-dot.green { background: var(--green); }
+    .legend-dot.amber { background: var(--amber); }
+    .legend-dot.red   { background: var(--red); }
+    .legend-dot.blue  { background: var(--blue); }
 
-    table { width:100%; border-collapse: collapse; font-size: 13px; }
+    /* ── SECTION HEADER ───────────────────── */
+    .section-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+    .section-title  { font-size: 14px; font-weight: 700; color: var(--text); }
+    .section-sub    { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+    .section-sub code { font-family: var(--font-mono); font-size: 11px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; color: var(--text-dim); }
 
-    th {
-      text-align: left;
-      padding: 10px 16px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface2);
-    }
+    .graph-label      { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+    .graph-label-hint { font-size: 11px; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 4px; }
 
-    td {
-      padding: 11px 16px;
-      color: var(--text-dim);
-      border-bottom: 1px solid var(--border-light);
-      vertical-align: middle;
-    }
-
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--surface2); }
-
-    .mono { font-family: var(--font-mono); font-size: 11px; }
-
-    /* ── EMPTY STATE ──────────────────────────── */
-    .empty {
-      padding: 48px 24px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    /* ── EMPTY STATE ──────────────────────── */
+    .empty { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .empty-icon  { font-size: 32px; margin-bottom: 12px; }
     .empty-title { font-size: 15px; color: var(--text-dim); font-weight: 600; margin-bottom: 6px; }
-    .empty-sub { font-size: 13px; }
+    .empty-sub   { font-size: 13px; }
 
-    /* ── SECTION HEADER ───────────────────────── */
-    .section-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px;
+    /* ── DETAIL DRAWER ────────────────────── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(31,35,40,.35); z-index: 200;
+      padding: 24px; overflow-y: auto;
+    }
+    .overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+
+    .drawer {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; width: 100%; max-width: 860px;
+      padding: 28px; position: relative; margin: auto;
+      box-shadow: var(--shadow-md);
     }
 
-    .section-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .drawer-close {
+      position: absolute; top: 16px; right: 16px;
+      background: none; border: none; color: var(--muted);
+      font-size: 18px; cursor: pointer; line-height: 1;
+      width: 28px; height: 28px; border-radius: 6px;
+      display: grid; place-items: center;
+    }
+    .drawer-close:hover { background: var(--surface2); color: var(--text); }
 
-    /* ── JOURNAL ──────────────────────────────── */
-    .journal-entry {
-      display: flex; gap: 12px; padding: 8px 0;
+    .drawer-title    { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+    .drawer-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+
+    /* ── NODE GRAPH ───────────────────────── */
+    .graph-section { margin-bottom: 24px; }
+    .graph-label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px;
+    }
+
+    .flow {
+      display: flex; align-items: center; gap: 0;
+      overflow-x: auto; padding-bottom: 4px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .flow::-webkit-scrollbar { height: 4px; }
+    .flow::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .node {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+    }
+
+    .node-box {
+      border-radius: 10px; border: 1.5px solid; padding: 10px 16px;
+      min-width: 130px; text-align: center;
+    }
+
+    .node-step  { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .7; margin-bottom: 3px; }
+    .node-name  { font-size: 13px; font-weight: 700; }
+    .node-tag   { font-size: 10px; margin-top: 3px; opacity: .8; }
+
+    .node-completed { background: var(--green-bg);  border-color: var(--green-border);  color: var(--green); }
+    .node-running   { background: var(--blue-bg);   border-color: var(--blue-border);   color: var(--blue); }
+    .node-gate      { background: var(--amber-bg);  border-color: var(--amber-border);  color: var(--amber); }
+    .node-failed    { background: var(--red-bg);    border-color: var(--red-border);    color: var(--red); }
+    .node-pending   { background: var(--surface2);  border-color: var(--border); border-style: dashed; color: var(--muted); }
+    .node-comp      { background: var(--orange-bg); border-color: var(--orange-border); color: var(--orange); }
+
+    /* Arrow between nodes */
+    .arrow {
+      flex-shrink: 0; width: 36px; display: flex;
+      flex-direction: column; align-items: center; position: relative;
+    }
+
+    .arrow-shaft {
+      width: 26px; height: 1.5px; background: var(--border); position: relative;
+    }
+    .arrow-shaft::after {
+      content: ''; position: absolute; right: -5px; top: -4px;
+      border: 5px solid transparent; border-left-color: var(--border);
+    }
+    .arrow-shaft.green { background: var(--green); }
+    .arrow-shaft.green::after { border-left-color: var(--green); }
+    .arrow-shaft.red { background: var(--red); }
+    .arrow-shaft.red::after { border-left-color: var(--red); }
+    .arrow-shaft.blue {
+      background: repeating-linear-gradient(90deg, var(--blue) 0, var(--blue) 5px, transparent 5px, transparent 9px);
+    }
+    .arrow-shaft.blue::after { border-left-color: var(--blue); }
+
+    .arrow-label { font-size: 9px; color: var(--muted); margin-top: 3px; white-space: nowrap; }
+
+    /* Compensation row */
+    .comp-row {
+      display: flex; align-items: center; gap: 0;
+      margin-top: 14px; padding-top: 12px;
+      border-top: 1px dashed var(--border-light);
+    }
+    .comp-row-label {
+      font-size: 10px; color: var(--muted); font-weight: 600;
+      margin-right: 10px; white-space: nowrap;
+    }
+
+    /* ── GATE ACTION IN DRAWER ────────────── */
+    .gate-actions {
+      background: var(--amber-bg); border: 1px solid var(--amber-border);
+      border-radius: var(--radius); padding: 14px 16px;
+      margin-bottom: 20px; display: flex; align-items: center;
+      justify-content: space-between; gap: 12px;
+    }
+
+    .gate-action-text { font-size: 13px; color: var(--amber); font-weight: 600; }
+    .gate-action-sub  { font-size: 11px; color: var(--amber); opacity: .8; margin-top: 2px; }
+
+    /* ── JOURNAL ──────────────────────────── */
+    .journal-wrap {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .journal-row {
+      display: grid; grid-template-columns: 28px 110px 1fr 80px;
+      gap: 8px; padding: 8px 14px; font-size: 12px; align-items: center;
       border-bottom: 1px solid var(--border-light);
-      font-size: 12px; align-items: flex-start;
     }
+    .journal-row:last-child { border-bottom: none; }
+    .journal-row:hover { background: var(--surface2); }
 
-    .journal-entry:last-child { border-bottom: none; }
-    .journal-seq   { color: var(--muted); width: 24px; flex-shrink:0; text-align:right; font-family: var(--font-mono); }
-    .journal-phase { width: 100px; flex-shrink:0; font-weight:600; }
-    .journal-tool  { color: var(--text-dim); flex:1; font-family: var(--font-mono); font-size:11px; }
-    .journal-hash  { color: var(--muted); font-family: var(--font-mono); font-size:10px; }
+    .j-seq   { color: var(--muted); font-family: var(--font-mono); text-align: right; }
+    .j-phase { font-weight: 600; font-family: var(--font-mono); font-size: 11px; }
+    .j-tool  { color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .j-hash  { color: var(--muted); font-family: var(--font-mono); font-size: 10px; text-align: right; }
 
-    .phase-INTENT             { color: #1a7f37; opacity:.65; }
+    .phase-INTENT             { color: #1a7f37; opacity: .6; }
     .phase-EXECUTED           { color: var(--green); }
     .phase-FAILED             { color: var(--red); }
-    .phase-COMPENSATED        { color: #9a4700; }
+    .phase-COMPENSATED        { color: var(--orange); }
     .phase-COMPENSATION_FAILED{ color: var(--red); }
     .phase-AWAITING_APPROVAL  { color: var(--amber); }
     .phase-APPROVED           { color: var(--blue); }
     .phase-REJECTED           { color: var(--red); }
 
-    /* ── DETAIL OVERLAY ───────────────────────── */
-    .overlay {
-      display: none;
-      position: fixed; inset:0;
-      background: rgba(31,35,40,.4);
-      z-index: 200;
-      padding: 24px;
-      overflow-y: auto;
-    }
+    /* ── VERIFY BANNER ────────────────────── */
+    .verify-ok   { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 6px; padding: 8px 14px; font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 12px; }
+    .verify-fail { background: var(--red-bg);   border: 1px solid var(--red-border);   border-radius: 6px; padding: 8px 14px; font-size: 12px; color: var(--red);   font-weight: 600; margin-bottom: 12px; }
 
-    .overlay.open { display: flex; align-items: flex-start; justify-content: center; }
-
-    .overlay-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      width: 100%; max-width: 680px;
-      padding: 24px;
-      position: relative;
-      margin: auto;
-      box-shadow: var(--shadow-md);
-    }
-
-    .overlay-close {
-      position: absolute; top:16px; right:16px;
-      background:none; border:none;
-      color: var(--muted); font-size: 18px; cursor: pointer;
-    }
-
-    .overlay-close:hover { color: var(--text); }
-    .overlay-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .overlay-sub   { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
-
-    /* ── TOAST ────────────────────────────────── */
+    /* ── TOAST ────────────────────────────── */
     #toast {
       position: fixed; bottom: 24px; right: 24px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 16px;
-      font-size: 13px; color: var(--text);
-      z-index: 999;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px;
+      font-size: 13px; color: var(--text); z-index: 999;
       opacity: 0; transform: translateY(8px);
       transition: opacity .2s, transform .2s;
       pointer-events: none; max-width: 320px;
       box-shadow: var(--shadow-md);
     }
-
-    #toast.show { opacity:1; transform: translateY(0); }
+    #toast.show { opacity: 1; transform: translateY(0); }
     #toast.success { border-color: var(--green-border); color: var(--green); }
     #toast.error   { border-color: var(--red-border);   color: var(--red); }
 
-    /* ── AUDIT INPUT ──────────────────────────── */
+    /* ── TEXT INPUT ───────────────────────── */
     .text-input {
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      color: var(--text);
-      font-size: 13px;
-      font-family: var(--font);
-      outline: none;
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--surface); color: var(--text); font-size: 13px;
+      font-family: var(--font); outline: none;
     }
-
     .text-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
 
-    /* ── VERIFY ───────────────────────────────── */
-    .verify-ok   { color: var(--green); font-size: 12px; font-weight: 600; }
-    .verify-fail { color: var(--red);   font-size: 12px; font-weight: 600; }
+    /* ── RUN ID CHIP ──────────────────────── */
+    .chip {
+      font-family: var(--font-mono); font-size: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 7px; color: var(--muted); cursor: pointer;
+    }
+    .chip:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ── DIVIDER ──────────────────────────── */
+    .divider { height: 1px; background: var(--border-light); margin: 20px 0; }
   </style>
 </head>
 <body>
@@ -611,24 +376,46 @@
 
 <main>
 
-  <!-- ═══════════════ WORKFLOWS ═══════════════ -->
+  <!-- ═══════════ WORKFLOWS LIST ═══════════ -->
   <div id="page-workflows" class="page active">
     <div class="stats" id="workflow-stats"></div>
-    <div class="section-header">
-      <span class="section-title">Workflow runs</span>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot green"></span> Completed — all stages ran successfully</span>
+      <span class="legend-item"><span class="legend-dot amber"></span> At gate — paused, waiting for human approval</span>
+      <span class="legend-item"><span class="legend-dot red"></span> Failed — a stage threw, automatic compensation ran</span>
+      <span class="legend-item"><span class="legend-dot blue"></span> Running — currently executing</span>
     </div>
-    <div id="workflow-grid" class="workflow-grid">
-      <div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div>
+    <div class="section-header">
+      <div>
+        <span class="section-title">Workflow runs</span>
+        <div class="section-sub">Each row is one execution of a <code>@Workflow</code> bean. Click any row to see the stage flow diagram and audit trail.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Workflow</th>
+            <th>Run ID</th>
+            <th>Status</th>
+            <th>Current stage</th>
+            <th>Started</th>
+            <th>Completed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="workflow-rows">
+          <tr><td colspan="7"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- ═══════════════ APPROVALS ═══════════════ -->
+  <!-- ═══════════ APPROVALS ════════════════ -->
   <div id="page-approvals" class="page">
     <div class="stats" id="approval-stats"></div>
 
-    <div class="section-header">
-      <span class="section-title">Gates awaiting approval</span>
-    </div>
+    <div class="section-header"><span class="section-title">Gates awaiting approval</span></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Workflow</th><th>Run ID</th><th>Gate stage</th><th>Waiting since</th><th></th></tr></thead>
@@ -636,9 +423,7 @@
       </table>
     </div>
 
-    <div class="section-header" style="margin-top:4px">
-      <span class="section-title">Saga approvals — irreversible tools</span>
-    </div>
+    <div class="section-header" style="margin-top:4px"><span class="section-title">Saga approvals — irreversible tools</span></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Saga ID</th><th>Tool</th><th>Seq</th><th>Input preview</th><th>Requested at</th><th></th></tr></thead>
@@ -647,11 +432,9 @@
     </div>
   </div>
 
-  <!-- ═══════════════ AUDIT ════════════════════ -->
+  <!-- ═══════════ AUDIT ════════════════════ -->
   <div id="page-audit" class="page">
-    <div class="section-header">
-      <span class="section-title">Audit trail lookup</span>
-    </div>
+    <div class="section-header"><span class="section-title">Audit trail lookup</span></div>
     <div style="display:flex;gap:10px;margin-bottom:20px">
       <input id="audit-id-input" class="text-input" placeholder="Saga ID or Workflow Run ID" style="width:360px"/>
       <button class="btn-refresh" onclick="loadAudit()">Look up →</button>
@@ -661,11 +444,11 @@
 
 </main>
 
-<!-- ═══════════ JOURNAL OVERLAY ═══════════ -->
-<div class="overlay" id="detail-overlay" onclick="closeOverlay(event)">
-  <div class="overlay-panel">
-    <button class="overlay-close" onclick="closeOverlayPanel()">✕</button>
-    <div id="detail-content"></div>
+<!-- ═══════════ DETAIL DRAWER ════════════ -->
+<div class="overlay" id="overlay" onclick="overlayBg(event)">
+  <div class="drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div id="drawer-content"></div>
   </div>
 </div>
 
@@ -675,226 +458,265 @@
   let workflows = [];
   let sagaApprovals = [];
 
-  // ── ROUTING ───────────────────────────────────
+  // ── ROUTING ───────────────────────────────
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    ['workflows','approvals','audit'].forEach((n, i) => {
+    ['workflows','approvals','audit'].forEach((n,i) => {
       if (n === name) document.querySelectorAll('.nav-tab')[i].classList.add('active');
     });
   }
 
-  // ── LOAD ──────────────────────────────────────
+  // ── LOAD ──────────────────────────────────
   async function loadAll() {
     await Promise.allSettled([loadWorkflows(), loadSagaApprovals()]);
     document.getElementById('last-refresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
   }
 
   async function loadWorkflows() {
-    try {
-      const res = await fetch('/sagacity/workflows');
-      workflows = res.ok ? await res.json() : [];
-    } catch { workflows = []; }
+    try { const r = await fetch('/sagacity/workflows'); workflows = r.ok ? await r.json() : []; }
+    catch { workflows = []; }
     renderWorkflows();
   }
 
   async function loadSagaApprovals() {
-    try {
-      const res = await fetch('/sagacity/approvals');
-      sagaApprovals = res.ok ? await res.json() : [];
-    } catch { sagaApprovals = []; }
+    try { const r = await fetch('/sagacity/approvals'); sagaApprovals = r.ok ? await r.json() : []; }
+    catch { sagaApprovals = []; }
     renderSagaApprovals();
     renderGateApprovals();
   }
 
-  // ── WORKFLOW CARDS ────────────────────────────
+  // ── WORKFLOWS LIST TABLE ──────────────────
   function renderWorkflows() {
-    const counts = { RUNNING:0, PAUSED_AT_GATE:0, COMPLETED:0, FAILED:0, COMPENSATING:0 };
-    workflows.forEach(w => { if (counts[w.status] !== undefined) counts[w.status]++; });
+    const c = { RUNNING:0, PAUSED_AT_GATE:0, COMPLETED:0, FAILED:0, COMPENSATING:0 };
+    workflows.forEach(w => { if (c[w.status] !== undefined) c[w.status]++; });
 
     document.getElementById('workflow-stats').innerHTML = `
-      <div class="stat blue"><div class="stat-label">Running</div><div class="stat-value">${counts.RUNNING}</div></div>
-      <div class="stat amber"><div class="stat-label">At gate</div><div class="stat-value">${counts.PAUSED_AT_GATE}</div></div>
-      <div class="stat green"><div class="stat-label">Completed</div><div class="stat-value">${counts.COMPLETED}</div></div>
-      <div class="stat red"><div class="stat-label">Failed</div><div class="stat-value">${counts.FAILED + counts.COMPENSATING}</div></div>
-      <div class="stat"><div class="stat-label">Total</div><div class="stat-value" style="color:var(--text)">${workflows.length}</div></div>
+      <div class="stat blue"  title="Workflows currently executing a stage"><div class="stat-label">Running</div><div class="stat-value">${c.RUNNING}</div></div>
+      <div class="stat amber" title="Workflows paused at a @Gate — waiting for human approval before the next stage executes"><div class="stat-label">At gate</div><div class="stat-value">${c.PAUSED_AT_GATE}</div></div>
+      <div class="stat green" title="Workflows where all stages completed successfully"><div class="stat-label">Completed</div><div class="stat-value">${c.COMPLETED}</div></div>
+      <div class="stat red"   title="Workflows where a stage or check failed — automatic compensation has run or is running"><div class="stat-label">Failed</div><div class="stat-value">${c.FAILED + c.COMPENSATING}</div></div>
+      <div class="stat"       title="Total workflow runs in this JVM session (resets on restart in v0.3 — JDBC persistence in v0.4)"><div class="stat-label">Total</div><div class="stat-value" style="color:var(--text)">${workflows.length}</div></div>
     `;
 
-    const gateCount = counts.PAUSED_AT_GATE;
-    document.getElementById('approval-badge').textContent = gateCount > 0 ? ` (${gateCount})` : '';
+    document.getElementById('approval-badge').textContent = c.PAUSED_AT_GATE > 0 ? ` (${c.PAUSED_AT_GATE})` : '';
 
-    const grid = document.getElementById('workflow-grid');
+    const tbody = document.getElementById('workflow-rows');
     if (!workflows.length) {
-      grid.innerHTML = `<div class="empty">
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty">
         <div class="empty-icon">🔄</div>
         <div class="empty-title">No workflow runs yet</div>
-        <div class="empty-sub">Runs appear here once a @Workflow executes</div>
-      </div>`;
+        <div class="empty-sub">Runs appear here once a <code>@Workflow</code>-annotated bean executes via <code>WorkflowRuntime.run()</code> or <code>runAsync()</code>.<br>Each run tracks stage progress, gate approvals, compensation, and a tamper-evident audit trail.</div>
+      </div></td></tr>`;
       return;
     }
 
-    grid.innerHTML = workflows
-      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-      .map(w => buildWorkflowCard(w))
-      .join('');
+    tbody.innerHTML = [...workflows]
+      .sort((a,b) => b.startedAt.localeCompare(a.startedAt))
+      .map(w => {
+        const isGate = w.status === 'PAUSED_AT_GATE';
+        const stageName = isGate && w.pendingGateStageName
+          ? `<span style="color:var(--amber)">⏸ ${esc(w.pendingGateStageName)}</span>`
+          : (w.currentStageOrder > 0 ? `Stage ${w.currentStageOrder}` : '—');
+
+        const actions = isGate && w.pendingGateStageName ? `
+          <div class="btn-gap">
+            <button class="btn btn-approve" onclick="event.stopPropagation();approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Approve</button>
+            <button class="btn btn-reject"  onclick="event.stopPropagation();rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Reject</button>
+          </div>
+        ` : '';
+
+        return `<tr onclick="openDrawer('${esc(w.runId)}')" title="Click to view flow diagram">
+          <td><strong>${esc(w.workflowName)}</strong></td>
+          <td><span class="chip" onclick="event.stopPropagation();copyText('${esc(w.runId)}')">${esc(w.runId.slice(0,8))}…</span></td>
+          <td>${statusBadge(w.status)}</td>
+          <td style="font-size:12px;color:var(--muted)">${stageName}</td>
+          <td class="mono">${fmtTime(w.startedAt)}</td>
+          <td class="mono">${w.completedAt ? fmtTime(w.completedAt) : '—'}</td>
+          <td>${actions}</td>
+        </tr>`;
+      }).join('');
 
     renderGateApprovals();
   }
 
-  function buildWorkflowCard(w) {
-    const completed = w.completedStages || [];
-    const isGate     = w.status === 'PAUSED_AT_GATE';
-    const isFailed   = w.status === 'FAILED' || w.status === 'COMPENSATING';
-    const isDone     = w.status === 'COMPLETED';
+  // ── DRAWER: NODE GRAPH + JOURNAL ──────────
+  async function openDrawer(runId) {
+    const w = workflows.find(x => x.runId === runId);
+    if (!w) return;
 
-    // Build stage nodes from completedStages + current state
-    const allStageNames = [...completed];
-    if (isGate && w.pendingGateStageName && !allStageNames.includes(w.pendingGateStageName)) {
-      allStageNames.push(w.pendingGateStageName);
-    }
-    if (isFailed && w.currentStageOrder > 0) {
-      // add a "Failed" marker
+    const isGate = w.status === 'PAUSED_AT_GATE';
+    const isFailed = w.status === 'FAILED' || w.status === 'COMPENSATING';
+    const completed = w.completedStages || [];
+
+    // Build the happy-path flow nodes
+    const allNodes = [...completed];
+    if (isGate && w.pendingGateStageName && !allNodes.includes(w.pendingGateStageName)) {
+      allNodes.push(w.pendingGateStageName);
     }
 
     let flowHtml = '';
-    allStageNames.forEach((name, i) => {
-      const isLast = i === allStageNames.length - 1;
+    allNodes.forEach((name, i) => {
       const isGateNode = isGate && name === w.pendingGateStageName;
-      const nodeClass = isGateNode ? 'node-gate' : 'node-completed';
+      const cls = isGateNode ? 'node-gate' : 'node-completed';
       const icon = isGateNode ? '⏸' : '✓';
-
       flowHtml += `
-        <div class="flow-node">
-          <div class="node-box ${nodeClass}">
-            <div class="node-order">${icon} Stage ${i + 1}</div>
+        <div class="node">
+          <div class="node-box ${cls}">
+            <div class="node-step">${icon} Stage ${i + 1}</div>
             <div class="node-name">${esc(name)}</div>
           </div>
         </div>
       `;
-
-      if (!isLast) {
-        const arrowClass = isGateNode ? 'blue' : 'green';
-        flowHtml += `
-          <div class="flow-arrow">
-            <div class="arrow-line ${arrowClass}"></div>
-          </div>
-        `;
+      if (i < allNodes.length - 1 || isFailed) {
+        const arrowCls = isGateNode ? 'blue' : 'green';
+        const label = i === allNodes.length - 2 && isFailed ? '' : '';
+        flowHtml += `<div class="arrow"><div class="arrow-shaft ${arrowCls}"></div>${label ? `<div class="arrow-label">${label}</div>` : ''}</div>`;
       }
     });
 
-    // If failed: add failed node
     if (isFailed) {
-      if (allStageNames.length > 0) {
-        flowHtml += `
-          <div class="flow-arrow">
-            <div class="arrow-line" style="background:var(--red)"></div>
-          </div>
-        `;
-      }
-      // Show "Stage N failed" — not the exception message (which is too long)
-      const failedStageNum = (completed.length || 0) + 1;
       flowHtml += `
-        <div class="flow-node">
+        <div class="arrow"><div class="arrow-shaft red"></div></div>
+        <div class="node">
           <div class="node-box node-failed">
-            <div class="node-order">✗ Stage ${failedStageNum}</div>
+            <div class="node-step">✗ Stage ${completed.length + 1}</div>
             <div class="node-name">Failed</div>
           </div>
         </div>
       `;
     }
 
-    // If completed and no stages tracked yet, show at least the final node
-    if (isDone && allStageNames.length === 0) {
-      flowHtml = `
-        <div class="flow-node">
-          <div class="node-box node-completed">
-            <div class="node-order">✓ Complete</div>
-            <div class="node-name">${esc(w.workflowName)}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    // Compensation row (for failed workflows)
+    // Compensation path (reverse)
     let compHtml = '';
     if (isFailed && completed.length > 0) {
       const reversed = [...completed].reverse();
       compHtml = `<div class="comp-row">
-        <span class="comp-label">⟲ Compensation</span>
+        <span class="comp-row-label" title="Compensation runs automatically in reverse order when a stage fails. Each @Compensable stage gets its declared undo method called.">⟲ Auto-compensation — undoing in reverse</span>
         ${reversed.map((name, i) => `
-          ${i > 0 ? '<div class="comp-arrow left" style="width:24px"></div>' : ''}
-          <div class="flow-node">
-            <div class="node-box node-compensation" style="min-width:80px">
-              <div class="node-order" style="font-size:9px">undo</div>
-              <div class="node-name" style="font-size:11px">${esc(name)}</div>
+          ${i > 0 ? `<div class="arrow" style="transform:scaleX(-1)"><div class="arrow-shaft" style="background:var(--orange-border)"></div></div>` : ''}
+          <div class="node">
+            <div class="node-box node-comp" style="min-width:110px">
+              <div class="node-step">undo</div>
+              <div class="node-name" style="font-size:12px">${esc(name)}</div>
             </div>
           </div>
         `).join('')}
       </div>`;
     }
 
-    // Gate approval buttons
-    const gateButtons = isGate && w.pendingGateStageName ? `
-      <div class="btn-gap">
-        <button class="btn btn-approve" onclick="approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Approve</button>
-        <button class="btn btn-reject"  onclick="rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Reject</button>
-      </div>
-    ` : `<div></div>`;
-
-    return `
-      <div class="workflow-card">
-        <div class="wf-header">
-          <div>
-            <div class="wf-name">${esc(w.workflowName)}</div>
-            <div class="wf-meta">
-              <span class="wf-id" onclick="copyText('${esc(w.runId)}')" title="Click to copy">${esc(w.runId.slice(0,8))}…</span>
-              <span class="wf-time">${fmtTime(w.startedAt)}</span>
-            </div>
-          </div>
-          ${statusBadge(w.status)}
+    // Gate action banner
+    const gateBanner = isGate && w.pendingGateStageName ? `
+      <div class="gate-actions">
+        <div>
+          <div class="gate-action-text">⏸ Waiting for approval — ${esc(w.pendingGateStageName)}</div>
+          <div class="gate-action-sub">Approve to execute this stage, or reject to trigger compensation</div>
         </div>
-
-        <div class="flow-wrap">
-          <div class="flow">${flowHtml || '<div style="color:var(--muted);font-size:12px">Starting…</div>'}</div>
-          ${compHtml}
-        </div>
-
-        <div class="wf-footer">
-          ${w.failureReason && !isFailed ? `<div class="wf-failure">✗ ${esc(w.failureReason.slice(0,60))}</div>` : gateButtons}
-          <button class="btn btn-detail" onclick="showDetail('${esc(w.runId)}')">Audit trail →</button>
+        <div class="btn-gap">
+          <button class="btn btn-approve" onclick="approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}');closeDrawer()">Approve</button>
+          <button class="btn btn-reject"  onclick="rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}');closeDrawer()">Reject</button>
         </div>
       </div>
+    ` : '';
+
+    // Failure reason
+    const failBanner = w.failureReason ? `
+      <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:20px">
+        ✗ ${esc(w.failureReason)}
+      </div>
+    ` : '';
+
+    document.getElementById('drawer-content').innerHTML = `
+      <div class="drawer-title">${esc(w.workflowName)}</div>
+      <div class="drawer-subtitle">
+        <span class="chip" onclick="copyText('${esc(w.runId)}')">${esc(w.runId)}</span>
+        ${statusBadge(w.status)}
+        <span style="font-size:11px">Started ${fmtTime(w.startedAt)}</span>
+        ${w.completedAt ? `<span style="font-size:11px">· Completed ${fmtTime(w.completedAt)}</span>` : ''}
+      </div>
+
+      ${gateBanner}
+      ${failBanner}
+
+      <div class="graph-section">
+        <div class="graph-label">Stage flow
+          <span class="graph-label-hint">— each box is one <code>@Stage</code> method. Green = executed successfully. Amber ⏸ = paused at a human approval gate. Red = failed.</span>
+        </div>
+        <div class="flow">${flowHtml || '<span style="color:var(--muted);font-size:12px">No stages recorded yet</span>'}</div>
+        ${compHtml}
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="graph-label">Tamper-evident audit journal
+        <span class="graph-label-hint">— every stage execution is appended here with a SHA-256 hash linking to the previous entry. Any modification to a past entry breaks the chain and is detected on verification.</span>
+      </div>
+      <div id="drawer-journal"><div style="color:var(--muted);font-size:12px;padding:8px 0">Loading…</div></div>
     `;
+
+    document.getElementById('overlay').classList.add('open');
+
+    // Load journal async
+    try {
+      const [jr, vr] = await Promise.all([
+        fetch(`/sagacity/audit/${encodeURIComponent(runId)}`),
+        fetch(`/sagacity/audit/${encodeURIComponent(runId)}/verify`)
+      ]);
+      const entries = jr.ok
+        ? (await jr.text()).trim().split('\n').filter(Boolean)
+            .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
+        : [];
+      const verify = vr.ok ? await vr.json() : null;
+
+      const vBadge = verify
+        ? (verify.valid
+            ? `<div class="verify-ok">✓ Hash chain verified — ${verify.entryCount} entries, no tampering detected</div>`
+            : `<div class="verify-fail">✗ Hash chain broken at entry ${verify.breakAtIndex}: ${esc(verify.message)}</div>`)
+        : '';
+
+      const jHtml = entries.length
+        ? `${vBadge}<div class="journal-wrap">${entries.map(e => `
+            <div class="journal-row">
+              <span class="j-seq">${e.seq}</span>
+              <span class="j-phase phase-${e.phase}">${e.phase}</span>
+              <span class="j-tool">${esc(e.toolName)}</span>
+              <span class="j-hash">${(e.hash||'').slice(0,8)}…</span>
+            </div>`).join('')}</div>`
+        : `<span style="color:var(--muted);font-size:12px">No journal entries found. Journal is keyed by saga/run ID.</span>`;
+
+      document.getElementById('drawer-journal').innerHTML = jHtml;
+    } catch {
+      document.getElementById('drawer-journal').innerHTML = '<span style="color:var(--muted);font-size:12px">Journal unavailable.</span>';
+    }
   }
 
-  // ── APPROVALS ─────────────────────────────────
+  function closeDrawer() { document.getElementById('overlay').classList.remove('open'); }
+  function overlayBg(e) { if (e.target === document.getElementById('overlay')) closeDrawer(); }
+
+  // ── APPROVALS TABLE ────────────────────────
   function renderGateApprovals() {
     const pending = workflows.filter(w => w.status === 'PAUSED_AT_GATE' && w.pendingGateStageName);
-
     document.getElementById('approval-stats').innerHTML = `
       <div class="stat amber"><div class="stat-label">Gates waiting</div><div class="stat-value">${pending.length}</div></div>
       <div class="stat amber"><div class="stat-label">Saga approvals</div><div class="stat-value">${sagaApprovals.length}</div></div>
     `;
-
     const tbody = document.getElementById('gate-rows');
     if (!tbody) return;
     if (!pending.length) {
-      tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No gates waiting</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No gates waiting</div><div class="empty-sub">Stages with @Gate(approvalRequired=true) appear here</div></div></td></tr>`;
       return;
     }
-    tbody.innerHTML = pending.map(w => `
-      <tr>
-        <td><strong>${esc(w.workflowName)}</strong></td>
-        <td><span class="mono" style="cursor:pointer" onclick="copyText('${esc(w.runId)}')">${esc(w.runId.slice(0,8))}…</span></td>
-        <td><span style="color:var(--amber);font-weight:600">⏸ ${esc(w.pendingGateStageName)}</span></td>
-        <td class="mono">${fmtTime(w.startedAt)}</td>
-        <td><div class="btn-gap">
-          <button class="btn btn-approve" onclick="approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Approve</button>
-          <button class="btn btn-reject"  onclick="rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Reject</button>
-        </div></td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = pending.map(w => `<tr>
+      <td><strong>${esc(w.workflowName)}</strong></td>
+      <td><span class="chip" onclick="copyText('${esc(w.runId)}')">${esc(w.runId.slice(0,8))}…</span></td>
+      <td><span style="color:var(--amber);font-weight:600">⏸ ${esc(w.pendingGateStageName)}</span></td>
+      <td class="mono">${fmtTime(w.startedAt)}</td>
+      <td><div class="btn-gap">
+        <button class="btn btn-approve" onclick="approveGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Approve</button>
+        <button class="btn btn-reject"  onclick="rejectGate('${esc(w.runId)}','${esc(w.pendingGateStageName)}')">Reject</button>
+      </div></td>
+    </tr>`).join('');
   }
 
   function renderSagaApprovals() {
@@ -904,22 +726,20 @@
       tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No saga approvals pending</div></div></td></tr>`;
       return;
     }
-    tbody.innerHTML = sagaApprovals.map(a => `
-      <tr>
-        <td class="mono">${esc(a.sagaId)}</td>
-        <td><strong>${esc(a.toolName)}</strong></td>
-        <td class="mono">${a.journalSeq}</td>
-        <td class="mono" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((a.input||'').slice(0,60))}</td>
-        <td class="mono">${fmtTime(a.createdAt)}</td>
-        <td><div class="btn-gap">
-          <button class="btn btn-approve" onclick="approveSaga('${esc(a.sagaId)}',${a.journalSeq})">Approve</button>
-          <button class="btn btn-reject"  onclick="rejectSaga('${esc(a.sagaId)}',${a.journalSeq})">Reject</button>
-        </div></td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = sagaApprovals.map(a => `<tr>
+      <td class="mono">${esc(a.sagaId)}</td>
+      <td><strong>${esc(a.toolName)}</strong></td>
+      <td class="mono">${a.journalSeq}</td>
+      <td class="mono" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((a.input||'').slice(0,60))}</td>
+      <td class="mono">${fmtTime(a.createdAt)}</td>
+      <td><div class="btn-gap">
+        <button class="btn btn-approve" onclick="approveSaga('${esc(a.sagaId)}',${a.journalSeq})">Approve</button>
+        <button class="btn btn-reject"  onclick="rejectSaga('${esc(a.sagaId)}',${a.journalSeq})">Reject</button>
+      </div></td>
+    </tr>`).join('');
   }
 
-  // ── AUDIT ─────────────────────────────────────
+  // ── AUDIT PAGE ─────────────────────────────
   async function loadAudit() {
     const id = document.getElementById('audit-id-input').value.trim();
     if (!id) { toast('Enter a saga ID or run ID', 'error'); return; }
@@ -930,85 +750,41 @@
         fetch(`/sagacity/audit/${encodeURIComponent(id)}`),
         fetch(`/sagacity/audit/${encodeURIComponent(id)}/verify`)
       ]);
-      let entries = [];
-      if (jr.ok) {
-        entries = (await jr.text()).trim().split('\n').filter(Boolean)
-          .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-      }
-      let verify = null;
-      if (vr.ok) verify = await vr.json();
+      const entries = jr.ok
+        ? (await jr.text()).trim().split('\n').filter(Boolean)
+            .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
+        : [];
+      const verify = vr.ok ? await vr.json() : null;
       if (!entries.length) {
         el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No entries found</div></div>`;
         return;
       }
       const vBadge = verify
         ? (verify.valid
-            ? `<span class="verify-ok">✓ Chain verified — ${verify.entryCount} entries</span>`
-            : `<span class="verify-fail">✗ Break at entry ${verify.breakAtIndex}</span>`)
+            ? `<div class="verify-ok">✓ Hash chain verified — ${verify.entryCount} entries</div>`
+            : `<div class="verify-fail">✗ Break at entry ${verify.breakAtIndex}</div>`)
         : '';
       el.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <span style="font-size:13px;font-weight:600">${entries.length} entries for <span class="mono">${esc(id)}</span></span>
-          ${vBadge}
-        </div>
-        <div class="table-wrap"><div style="padding:4px 0" id="audit-entries"></div></div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">${entries.length} entries for <span class="chip">${esc(id)}</span></div>
+        ${vBadge}
+        <div class="table-wrap"><div class="journal-wrap" style="border:none">${entries.map(e => `
+          <div class="journal-row">
+            <span class="j-seq">${e.seq}</span>
+            <span class="j-phase phase-${e.phase}">${e.phase}</span>
+            <span class="j-tool">${esc(e.toolName)}</span>
+            <span class="j-hash">${(e.hash||'').slice(0,8)}…</span>
+          </div>`).join('')}</div></div>
       `;
-      renderJournal(entries, 'audit-entries');
-    } catch (e) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Request failed</div></div>`;
-    }
+    } catch { el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Request failed</div></div>`; }
   }
 
-  function renderJournal(entries, containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    el.innerHTML = entries.map(e => `
-      <div class="journal-entry">
-        <span class="journal-seq">${e.seq}</span>
-        <span class="journal-phase phase-${e.phase}">${e.phase}</span>
-        <span class="journal-tool">${esc(e.toolName)}</span>
-        <span class="journal-hash">${(e.hash||'').slice(0,8)}…</span>
-      </div>
-    `).join('');
-  }
-
-  // ── DETAIL OVERLAY ────────────────────────────
-  async function showDetail(runId) {
-    const w = workflows.find(x => x.runId === runId);
-    if (!w) return;
-    const el = document.getElementById('detail-content');
-    el.innerHTML = `
-      <div class="overlay-title">${esc(w.workflowName)}</div>
-      <div class="overlay-sub">${esc(runId)}  ${statusBadge(w.status)}</div>
-      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Journal</div>
-      <div id="overlay-journal">Loading…</div>
-    `;
-    document.getElementById('detail-overlay').classList.add('open');
-    try {
-      const res = await fetch(`/sagacity/audit/${encodeURIComponent(runId)}`);
-      if (res.ok) {
-        const entries = (await res.text()).trim().split('\n').filter(Boolean)
-          .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-        document.getElementById('overlay-journal').innerHTML =
-          entries.length ? '' : '<span style="color:var(--muted);font-size:12px">No entries.</span>';
-        if (entries.length) renderJournal(entries, 'overlay-journal');
-      } else {
-        document.getElementById('overlay-journal').innerHTML = '<span style="color:var(--muted);font-size:12px">No journal entries found.</span>';
-      }
-    } catch { document.getElementById('overlay-journal').innerHTML = '<span style="color:var(--muted)">Unavailable.</span>'; }
-  }
-
-  function closeOverlayPanel() { document.getElementById('detail-overlay').classList.remove('open'); }
-  function closeOverlay(e) { if (e.target === document.getElementById('detail-overlay')) closeOverlayPanel(); }
-
-  // ── GATE ACTIONS ──────────────────────────────
+  // ── GATE ACTIONS ───────────────────────────
   async function approveGate(runId, stageName) {
     try {
-      const res = await fetch(`/sagacity/workflows/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageName)}/approve`,
+      const r = await fetch(`/sagacity/workflows/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageName)}/approve`,
         { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
-      const j = await res.json();
-      if (res.ok) { toast(`✓ Gate approved: ${stageName}`, 'success'); setTimeout(loadAll, 500); }
-      else toast(`Error: ${j.error||res.status}`, 'error');
+      if (r.ok) { toast(`✓ Approved: ${stageName}`, 'success'); setTimeout(loadAll, 500); }
+      else { const j = await r.json(); toast(`Error: ${j.error||r.status}`, 'error'); }
     } catch { toast('Request failed', 'error'); }
   }
 
@@ -1016,22 +792,21 @@
     const reason = prompt(`Reason for rejecting "${stageName}":`);
     if (reason === null) return;
     try {
-      const res = await fetch(`/sagacity/workflows/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageName)}/reject`,
+      const r = await fetch(`/sagacity/workflows/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageName)}/reject`,
         { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({reason: reason||'rejected'}) });
-      if (res.ok) { toast(`Rejected: ${stageName}`, 'success'); setTimeout(loadAll, 500); }
-      else { const j = await res.json(); toast(`Error: ${j.error||res.status}`, 'error'); }
+      if (r.ok) { toast(`Rejected: ${stageName}`, 'success'); setTimeout(loadAll, 500); }
+      else { const j = await r.json(); toast(`Error: ${j.error||r.status}`, 'error'); }
     } catch { toast('Request failed', 'error'); }
   }
 
-  // ── SAGA ACTIONS ──────────────────────────────
   async function approveSaga(sagaId, seq) {
     const approver = prompt('Your name or email (recorded in audit trail):');
     if (approver === null) return;
     try {
-      const res = await fetch(`/sagacity/approve/${encodeURIComponent(sagaId)}/${seq}`,
+      const r = await fetch(`/sagacity/approve/${encodeURIComponent(sagaId)}/${seq}`,
         { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({approver: approver||'unknown'}) });
-      if (res.ok) { toast('✓ Approved', 'success'); setTimeout(loadAll, 500); }
-      else { const j = await res.json(); toast(`Error: ${j.error||res.status}`, 'error'); }
+      if (r.ok) { toast('✓ Approved', 'success'); setTimeout(loadAll, 500); }
+      else { const j = await r.json(); toast(`Error: ${j.error||r.status}`, 'error'); }
     } catch { toast('Request failed', 'error'); }
   }
 
@@ -1039,29 +814,29 @@
     const approver = prompt('Your name or email:');
     if (approver === null) return;
     try {
-      const res = await fetch(`/sagacity/reject/${encodeURIComponent(sagaId)}/${seq}`,
+      const r = await fetch(`/sagacity/reject/${encodeURIComponent(sagaId)}/${seq}`,
         { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({approver: approver||'unknown'}) });
-      if (res.ok) { toast('Rejected', 'success'); setTimeout(loadAll, 500); }
-      else { const j = await res.json(); toast(`Error: ${j.error||res.status}`, 'error'); }
+      if (r.ok) { toast('Rejected', 'success'); setTimeout(loadAll, 500); }
+      else { const j = await r.json(); toast(`Error: ${j.error||r.status}`, 'error'); }
     } catch { toast('Request failed', 'error'); }
   }
 
-  // ── HELPERS ───────────────────────────────────
-  function statusBadge(status) {
-    const map = {
+  // ── HELPERS ────────────────────────────────
+  function statusBadge(s) {
+    const m = {
       RUNNING:        ['badge-running',     '● Running'],
-      PAUSED_AT_GATE: ['badge-gate',        '⏸ Gate'],
+      PAUSED_AT_GATE: ['badge-gate',        '⏸ At gate'],
       COMPLETED:      ['badge-completed',   '✓ Completed'],
       FAILED:         ['badge-failed',      '✗ Failed'],
       COMPENSATING:   ['badge-compensating','⟲ Compensating'],
     };
-    const [cls, label] = map[status] || ['', status];
+    const [cls, label] = m[s] || ['', s];
     return `<span class="badge ${cls}">${label}</span>`;
   }
 
   function fmtTime(iso) {
     if (!iso) return '—';
-    try { return new Date(iso).toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+    try { return new Date(iso).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
     catch { return iso; }
   }
 
@@ -1074,15 +849,19 @@
   let toastTimer;
   function toast(msg, type) {
     const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className = 'show ' + (type||'');
+    el.textContent = msg; el.className = 'show ' + (type||'');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
   }
 
-  // ── INIT ──────────────────────────────────────
   loadAll();
   setInterval(loadAll, 15000);
+
+  // Auto-open drawer if ?open=<runId> is in the URL (used for screenshots/deep links)
+  const autoOpen = new URLSearchParams(location.search).get('open');
+  if (autoOpen) {
+    loadAll().then(() => setTimeout(() => openDrawer(autoOpen), 400));
+  }
 </script>
 </body>
 </html>
