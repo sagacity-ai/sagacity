@@ -35,6 +35,36 @@ public final class WorkflowRun {
         this.status = WorkflowStatus.RUNNING;
     }
 
+    /**
+     * Reconstitute a {@link WorkflowRun} from persisted fields.
+     *
+     * <p>Used exclusively by {@link dev.sagacity.workflows.store.JdbcWorkflowRunStore}
+     * when loading a run from the database. Do not call from application code.
+     */
+    public static WorkflowRun reconstitute(
+            String runId, String workflowName, WorkflowStatus status,
+            int currentStageOrder, String pendingGateStageName,
+            List<String> completedStages, Object lastStageOutput,
+            String failureReason, Instant startedAt, Instant completedAt) {
+        WorkflowRun run = new WorkflowRun(runId, workflowName, startedAt);
+        run.status = status;
+        run.currentStageOrder = currentStageOrder;
+        run.pendingGateStageName = pendingGateStageName;
+        run.completedStages.addAll(completedStages);
+        run.lastStageOutput = lastStageOutput;
+        run.failureReason = failureReason;
+        run.completedAt = completedAt;
+        return run;
+    }
+
+    /** Private constructor for reconstitution — preserves the original startedAt. */
+    private WorkflowRun(String runId, String workflowName, Instant startedAt) {
+        this.runId = runId;
+        this.workflowName = workflowName;
+        this.startedAt = startedAt;
+        this.status = WorkflowStatus.RUNNING;
+    }
+
     public String runId() { return runId; }
     public String workflowName() { return workflowName; }
     public Instant startedAt() { return startedAt; }

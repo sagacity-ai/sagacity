@@ -21,6 +21,8 @@ import dev.sagacity.core.annotation.Compensation;
 import dev.sagacity.core.compensation.CompensationContext;
 import dev.sagacity.core.journal.Phase;
 import dev.sagacity.core.journal.SideEffectJournal;
+import dev.sagacity.workflows.store.InMemoryWorkflowRunStore;
+import dev.sagacity.workflows.store.WorkflowRunStore;
 import dev.sagacity.workflows.annotation.Check;
 import dev.sagacity.workflows.annotation.Gate;
 import dev.sagacity.workflows.annotation.Stage;
@@ -54,17 +56,23 @@ public final class WorkflowRuntime {
     private final SideEffectJournal journal;
     private final ApplicationContext applicationContext;
     private final Executor executor;
+    private final WorkflowRunStore runStore;
 
-    // runId → WorkflowRun. ConcurrentHashMap for safe reads across threads;
-    // mutations on individual runs are synchronized on the run object itself.
-    private final Map<String, WorkflowRun> runs = new ConcurrentHashMap<>();
-
-    // runId → CompletableFuture, used by WorkflowHandle.awaitCompletion
+    // runId → CompletableFuture, used by WorkflowHandle.awaitCompletion.
+    // Futures are in-memory only — they cannot be serialized. On JVM restart,
+    // a reloaded run that is still PAUSED_AT_GATE needs a new future created
+    // before resumeFromStore() is called.
     private final Map<String, CompletableFuture<WorkflowRun>> futures = new ConcurrentHashMap<>();
 
     public WorkflowRuntime(SideEffectJournal journal, ApplicationContext applicationContext) {
+        this(journal, applicationContext, new InMemoryWorkflowRunStore());
+    }
+
+    public WorkflowRuntime(SideEffectJournal journal, ApplicationContext applicationContext,
+                           WorkflowRunStore runStore) {
         this.journal = journal;
         this.applicationContext = applicationContext;
+        this.runStore = runStore;
         // Virtual threads on Java 21+, cached pool on Java 17
         this.executor = Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r, "sagacity-workflow");
@@ -132,6 +140,7 @@ public final class WorkflowRuntime {
             }
             workflowRun.clearPendingGate();
             workflowRun.transitionTo(WorkflowStatus.RUNNING);
+            runStore.save(workflowRun);
             workflowRun.notifyAll(); // wake the waiting execution thread
         }
         journal.append(runId, stageName, Phase.APPROVED, "gate-approved", "human approved gate: " + stageName);
@@ -154,6 +163,7 @@ public final class WorkflowRuntime {
             }
             workflowRun.clearPendingGate();
             workflowRun.fail("gate rejected: " + reason);
+            runStore.save(workflowRun);
             workflowRun.notifyAll();
         }
         journal.append(runId, stageName, Phase.REJECTED, "gate-rejected", "human rejected gate: " + reason);
@@ -162,12 +172,12 @@ public final class WorkflowRuntime {
 
     /** Retrieve a run by ID. Returns empty if no such run exists. */
     public Optional<WorkflowRun> findRun(String runId) {
-        return Optional.ofNullable(runs.get(runId));
+        return runStore.load(runId);
     }
 
     /** All runs known to this runtime, in no particular order. */
     public List<WorkflowRun> allRuns() {
-        return List.copyOf(runs.values());
+        return runStore.loadAll();
     }
 
     // -------------------------------------------------------------------------
@@ -229,7 +239,7 @@ public final class WorkflowRuntime {
             throw new WorkflowDefinitionException(clazz.getName() + " is not annotated with @Workflow");
         }
         WorkflowRun workflowRun = new WorkflowRun(runId, workflow.value());
-        runs.put(runId, workflowRun);
+        runStore.save(workflowRun);
         log.info("[sagacity-workflows] started runId=" + runId + " workflow=" + workflow.value());
         return workflowRun;
     }
@@ -284,6 +294,7 @@ public final class WorkflowRuntime {
                         String.valueOf(stageInput), "stage completed");
                 workflowRun.recordStageCompleted(stageName);
                 workflowRun.setLastStageOutput(result);
+                runStore.save(workflowRun);
                 // Pass this stage's output as the next stage's input (chaining)
                 stageInput = result;
 
@@ -297,6 +308,7 @@ public final class WorkflowRuntime {
                 journal.append(workflowRun.runId(), stageName, Phase.FAILED,
                         String.valueOf(stageInput), reason);
                 workflowRun.fail("stage '" + stageName + "' failed: " + reason);
+                runStore.save(workflowRun);
                 log.warning("[sagacity-workflows] stage failed: runId=" + workflowRun.runId()
                         + " stage=" + stageName + " reason=" + reason);
                 runCompensation(workflowRun, workflowBean, completedWithCompensation);
@@ -306,6 +318,7 @@ public final class WorkflowRuntime {
 
         // All stages completed
         workflowRun.transitionTo(WorkflowStatus.COMPLETED);
+        runStore.save(workflowRun);
         log.info("[sagacity-workflows] completed runId=" + workflowRun.runId()
                 + " workflow=" + workflowRun.workflowName());
     }
@@ -313,6 +326,7 @@ public final class WorkflowRuntime {
     private void waitForGate(WorkflowRun workflowRun, String stageName, long timeoutSeconds) {
         synchronized (workflowRun) {
             workflowRun.setPendingGate(stageName);
+            runStore.save(workflowRun);
             log.info("[sagacity-workflows] paused at gate: runId=" + workflowRun.runId() + " stage=" + stageName);
             try {
                 long deadline = timeoutSeconds > 0 ? System.currentTimeMillis() + (timeoutSeconds * 1000L) : 0;
@@ -321,6 +335,7 @@ public final class WorkflowRuntime {
                         long remaining = deadline - System.currentTimeMillis();
                         if (remaining <= 0) {
                             workflowRun.fail("gate timed out after " + timeoutSeconds + "s: stage=" + stageName);
+                            runStore.save(workflowRun);
                             return;
                         }
                         workflowRun.wait(remaining);
@@ -340,6 +355,7 @@ public final class WorkflowRuntime {
             return;
         }
         workflowRun.transitionTo(WorkflowStatus.COMPENSATING);
+        runStore.save(workflowRun);
         log.info("[sagacity-workflows] compensating: runId=" + workflowRun.runId()
                 + " stages=" + completedStages.size());
 
@@ -368,6 +384,7 @@ public final class WorkflowRuntime {
             }
         }
         workflowRun.transitionTo(WorkflowStatus.FAILED);
+        runStore.save(workflowRun);
     }
 
     private CheckResult runChecks(Check check, WorkflowRun run, String stageName, int stageOrder, Object input) {
@@ -427,11 +444,8 @@ public final class WorkflowRuntime {
     // -------------------------------------------------------------------------
 
     private WorkflowRun requireRun(String runId) {
-        WorkflowRun run = runs.get(runId);
-        if (run == null) {
-            throw new IllegalArgumentException("No workflow run found with ID: " + runId);
-        }
-        return run;
+        return runStore.load(runId).orElseThrow(() ->
+                new IllegalArgumentException("No workflow run found with ID: " + runId));
     }
 
     private static Workflow findWorkflowAnnotation(Class<?> clazz) {

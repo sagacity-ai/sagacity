@@ -30,3 +30,25 @@ CREATE TABLE IF NOT EXISTS sagacity_approval_request (
 );
 
 CREATE INDEX IF NOT EXISTS idx_approval_saga_id ON sagacity_approval_request (saga_id);
+
+-- Durable workflow run state (sagacity-workflows v0.4.0+).
+-- One row per WorkflowRun. Updated on every state transition so runs survive
+-- JVM restarts. The full audit trail is in side_effect_journal; this table
+-- only holds the minimal state needed to resume execution and render the UI.
+CREATE TABLE IF NOT EXISTS sagacity_workflow_runs (
+    run_id                  VARCHAR(36)  NOT NULL,
+    workflow_name           VARCHAR(255) NOT NULL,
+    status                  VARCHAR(50)  NOT NULL,
+    current_stage_order     INT          NOT NULL DEFAULT 0,
+    pending_gate_stage      VARCHAR(255),
+    completed_stages        TEXT,
+    last_stage_output       TEXT,
+    last_stage_output_type  VARCHAR(512),
+    failure_reason          TEXT,
+    started_at              TIMESTAMP    NOT NULL,
+    completed_at            TIMESTAMP,
+    PRIMARY KEY (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_runs_status ON sagacity_workflow_runs (status);
+CREATE INDEX IF NOT EXISTS idx_workflow_runs_name   ON sagacity_workflow_runs (workflow_name);
