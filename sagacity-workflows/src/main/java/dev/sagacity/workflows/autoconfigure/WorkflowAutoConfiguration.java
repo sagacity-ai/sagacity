@@ -9,6 +9,7 @@ import dev.sagacity.workflows.store.JdbcWorkflowRunStore;
 import dev.sagacity.workflows.store.WorkflowRunStore;
 import dev.sagacity.workflows.web.HumanApprovalGateController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
@@ -46,14 +47,14 @@ public class WorkflowAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(WorkflowRunStore.class)
-    @ConditionalOnClass(DataSource.class)
+    @ConditionalOnBean(DataSource.class)
     public WorkflowRunStore jdbcWorkflowRunStore(DataSource dataSource,
                                                   ObjectMapper objectMapper) {
         return new JdbcWorkflowRunStore(dataSource, objectMapper);
     }
 
     /**
-     * Fallback — in-memory store when no {@link DataSource} is configured.
+     * Fallback — in-memory store when no {@link DataSource} bean is configured.
      * Runs are lost on JVM restart. Suitable for development and testing.
      */
     @Bean
