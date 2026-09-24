@@ -93,6 +93,8 @@ nav:
       - Testing strategy: about/testing.md
       - Design spec: about/spec.md
       - Contributing: about/contributing.md
+  - Blog:
+      - Why your AI agent needs a human approval gate: why-your-ai-agent-needs-a-human-approval-gate.md
 
 extra:
   social:
