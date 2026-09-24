@@ -6,9 +6,9 @@
 [![Build](https://github.com/sagacity-ai/sagacity/actions/workflows/build.yml/badge.svg)](https://github.com/sagacity-ai/sagacity/actions/workflows/build.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.sumitvairagar/sagacity-spring-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.sumitvairagar/sagacity-spring-boot-starter)
 [![Docs](https://img.shields.io/badge/docs-sagacity--ai.github.io%2Fsagacity-blue.svg)](https://sagacity-ai.github.io/sagacity/)
-[![Tests](https://img.shields.io/badge/tests-202%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-237%20passing-brightgreen.svg)]()
 
-**The reliability layer for Spring AI agents.** Declarative workflows, automatic compensation, tamper-evident audit trail, and human approval gates — in annotations.
+**Human oversight and audit for Spring AI agents.** Pause before irreversible actions. Approve or reject. Unwind automatically if rejected. Every decision tamper-evident.
 
 <!-- Animated diagram: tools execute → failure → compensation flows backward -->
 <p align="center">
@@ -19,14 +19,16 @@
 
 ## The Problem
 
-AI agents perform multi-step tasks with **real-world side effects** — reserving inventory, creating orders, sending emails, charging cards. When step 4 fails:
+Your AI agents are making decisions that affect real people — approving transactions, sending emails, updating records, charging cards. Right now:
 
-- ❌ Steps 1–3's side effects are **live in production**
-- ❌ Nothing undoes them automatically
-- ❌ There's no compliance-grade record of what happened
-- ❌ Nobody approved the irreversible action in step 3
+- ❌ **Nobody approved** the irreversible action before it ran
+- ❌ **Nothing undoes** completed steps when something later fails
+- ❌ **No compliance-grade record** of what happened, in what order, who approved what
+- ❌ **No answer** when legal asks "can you prove your AI didn't act without authorisation?"
 
-Every framework retries. **None compensates. None produces evidence. None gates irreversible actions.**
+Every framework lets agents act. **None requires a human to approve before they do. None compensates when they shouldn't have. None produces evidence for a regulator.**
+
+Sagacity is the governance layer that sits between your Spring AI agent and the actions it takes.
 
 ---
 

@@ -9,8 +9,8 @@ hide:
 # Sagacity
 
 <p class="sg-tagline">
-The reliability layer for Spring AI agents.
-<strong>Declarative workflows, automatic compensation, human approval gates, and a tamper-evident audit trail — in annotations.</strong>
+Human oversight and audit for Spring AI agents.
+<strong>Pause before irreversible actions. Approve or reject. Unwind automatically. Every decision tamper-evident.</strong>
 </p>
 
 <div class="sg-cta" markdown>
@@ -23,14 +23,14 @@ The reliability layer for Spring AI agents.
 
 ---
 
-AI agents do real work: they reserve inventory, charge cards, send emails, update CRMs. When step 4 of 5 fails:
+Your AI agents are making decisions that affect real people — approving transactions, sending emails, charging cards, updating records. Right now:
 
-- the side effects from steps 1–3 are **live in production**
-- nothing undoes them automatically
-- there is no compliance-grade record of what happened
-- nobody approved the irreversible action in step 3
+- nobody approved the irreversible action **before** it ran
+- nothing undoes completed steps when something later fails
+- there is no compliance-grade record of what happened, in what order, who approved what
+- there is no answer when legal asks "can you prove your AI didn't act without authorisation?"
 
-Sagacity fixes all four — as a library, inside your existing Spring Boot app, with no new infrastructure.
+Sagacity is the governance layer that sits between your Spring AI agent and the actions it takes — inside your existing Spring Boot app, with no new infrastructure.
 
 ---
 
