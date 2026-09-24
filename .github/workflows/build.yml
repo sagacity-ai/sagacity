@@ -41,17 +41,20 @@ jobs:
       # the ITs actually ran. Catches a silently-degraded pipeline.
       - name: Assert integration tests were not skipped
         run: |
-          report=sagacity-core/target/failsafe-reports/dev.sagacity.core.journal.PostgresSideEffectJournalIT.txt
-          if [ ! -f "$report" ]; then
-            echo "::error::No failsafe report — the Postgres ITs did not run."
-            exit 1
-          fi
-          if grep -qE 'Skipped: [1-9]' "$report"; then
-            echo "::error::Postgres ITs were skipped:"
+          for report in \
+            sagacity-core/target/failsafe-reports/dev.sagacity.core.journal.JdbcSideEffectJournalIT.txt \
+            sagacity-core/target/failsafe-reports/dev.sagacity.core.approval.PostgresApprovalStoreIT.txt; do
+            if [ ! -f "$report" ]; then
+              echo "::error::No failsafe report — the Postgres ITs did not run: $report"
+              exit 1
+            fi
+            if grep -qE 'Skipped: [1-9]' "$report"; then
+              echo "::error::Postgres ITs were skipped:"
+              cat "$report"
+              exit 1
+            fi
             cat "$report"
-            exit 1
-          fi
-          cat "$report"
+          done
 
       - name: Coverage summary
         if: always()
