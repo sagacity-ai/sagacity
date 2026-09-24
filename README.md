@@ -156,14 +156,14 @@ Full documentation: **[sagacity-ai.github.io/sagacity](https://sagacity-ai.githu
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 
 <!-- Optional: declarative workflow engine -->
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-workflows</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -342,6 +342,8 @@ Disable with `sagacity.ui-enabled=false`.
 | Startup topology validation | ✅ **v0.3.0** | Bad workflow definitions crash app at startup, not runtime |
 | `WorkflowHandle` async execution | ✅ **v0.3.0** | Non-blocking run with status polling |
 | Workflow REST API | ✅ **v0.3.0** | List runs, inspect status, approve/reject gates |
+| Embedded UI (`/sagacity/ui`) | ✅ **v0.3.0** | Zero-config dashboard — workflow runs, gate approvals, audit viewer |
+| JDBC-backed durable workflow state | ✅ **v0.4.0** | Workflow runs survive JVM restarts; gates stay open across deploys |
 
 ---
 
@@ -453,9 +455,10 @@ The EU AI Act (enforceable from **2026-08-02**) requires tamper-evident, traceab
 | M3 — Spring Boot Starter + Maven Central | ✅ Done (v0.1.0) |
 | M3.5 — Cloud journal + retry + universal JDBC | ✅ Done (v0.2.0) |
 | M4 — Workflow engine (`sagacity-workflows`) | ✅ Done (v0.3.0) |
-| M5 — JDBC-backed durable workflow state | 📋 Planned (v0.4.0) |
-| M5 — Approval dashboard UI | 📋 Planned |
-| M5 — LangChain4j adapter | 📋 Planned |
+| M4 — Embedded UI (`/sagacity/ui`) | ✅ Done (v0.3.0) |
+| M5 — JDBC-backed durable workflow state | ✅ Done (v0.4.0) |
+| M5 — Approval dashboard UI (Sagacity Cloud) | ✅ Done (v0.4.0) |
+| M6 — LangChain4j adapter | 📋 Planned |
 
 See [docs/about/roadmap.md](docs/about/roadmap.md) for details.
 
@@ -466,10 +469,10 @@ See [docs/about/roadmap.md](docs/about/roadmap.md) for details.
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 **High-impact areas:**
-- JDBC-backed durable workflow state (v0.4.0)
-- Approval dashboard UI (React/Vue)
-- LangChain4j adapter
-- More workflow examples
+- LangChain4j adapter (`sagacity-langchain4j`)
+- MCP tool support — compensations for MCP-server tools
+- Typed compensation methods — bind original parameters directly
+- Approval expiry — `@Gate(timeoutSeconds=N)` auto-fail
 
 ---
 
