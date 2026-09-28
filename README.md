@@ -34,41 +34,9 @@ Sagacity is the governance layer that sits between your Spring AI agent and the 
 
 ## Two ways to use Sagacity
 
-### Option A — Wrap individual tool calls
+### Option A — Declare a verifiable workflow (`sagacity-workflows`)
 
-Annotate your Spring AI tools with `@Compensable`. Sagacity intercepts every call, journals it, and compensates in reverse if the saga fails.
-
-```java
-@Tool(description = "Reserve inventory")
-@Compensable(by = "releaseInventory")
-public String reserveInventory(String productId, int quantity) {
-    return inventory.reserve(productId, quantity);  // returns "res-8891"
-}
-
-@Compensation
-public void releaseInventory(CompensationContext ctx) {
-    inventory.release(ctx.result());   // "res-8891"
-}
-
-@Tool(description = "Send wire transfer — cannot be undone")
-@Compensable(reversibility = Reversibility.IRREVERSIBLE)
-public String sendWireTransfer(String orderId) {
-    // pauses the saga until a human approves via REST
-    return payments.wire(orderId);
-}
-```
-
-```java
-SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
-    chatClient.prompt()
-        .user("Place order for 2 units of product p-1")
-        .toolCallbacks(sagacity.wrap(orderTools))
-        .call().chatResponse());
-```
-
-### Option B — Declare a verifiable workflow (`sagacity-workflows`)
-
-Define the entire multi-step process as annotated stages. The runtime executes them in order, chains each stage's output as the next stage's input automatically, and compensates in reverse on any failure. Human gates pause execution until approved.
+Define the entire multi-step process as annotated stages. The runtime executes them in order, pauses at human approval gates, and compensates in reverse on any failure or rejection. Human gates survive JVM restarts.
 
 ```java
 @Workflow("refund-approval")
@@ -84,7 +52,6 @@ public class RefundWorkflow {
     @Stage(order = 2)
     @Compensable(by = "reverseRefund")
     public String issueRefund(String validationId) {
-        // 'validationId' injected automatically from stage 1's return value
         return payments.refund(validationId);    // returns "ref-4492"
     }
 
@@ -92,8 +59,7 @@ public class RefundWorkflow {
     @Gate(approvalRequired = true,               // ← workflow pauses here
           reason = "Compliance must approve before customer is notified")
     public String notifyCompliance(String refundId) {
-        // only runs AFTER a human approves:
-        // POST /sagacity/workflows/{runId}/gates/notifyCompliance/approve
+        // only runs AFTER a human approves via UI or REST
         return compliance.log(refundId);
     }
 
@@ -109,21 +75,48 @@ public class RefundWorkflow {
 
     @Compensation
     public void reverseRefund(CompensationContext ctx) {
-        payments.reverse(ctx.result());          // ctx.result() = "ref-4492"
+        payments.reverse(ctx.result());
     }
 }
 ```
 
 ```java
-// Run async — returns immediately, workflow pauses at stage 3
+// Run async — pauses at stage 3 gate, survives JVM restart
 WorkflowHandle handle = workflowRuntime.runAsync(refundWorkflow, "ORDER-88210");
 
-// Approve via REST or programmatically
+// Approve via REST or the embedded UI at /sagacity/ui
 workflowRuntime.approveGate(handle.runId(), "notifyCompliance");
 
+// If rejected instead — stages 2 and 1 compensate automatically
+workflowRuntime.rejectGate(handle.runId(), "notifyCompliance", "Policy threshold exceeded");
+// → reverseRefund runs, then cancelValidation runs. Clean state.
+
 handle.awaitCompletion(30, TimeUnit.MINUTES);
-// → WorkflowStatus.COMPLETED
-// Every stage journaled. If anything fails, stages 2 and 1 compensate in reverse.
+```
+
+### Option B — Wrap individual tool calls
+
+Annotate your Spring AI tools with `@Compensable`. Sagacity intercepts every call, journals it, and compensates in reverse if the saga fails. No full workflow declaration needed — useful when your process is LLM-driven rather than declarative.
+
+```java
+@Tool(description = "Reserve inventory")
+@Compensable(by = "releaseInventory")
+public String reserveInventory(String productId, int quantity) {
+    return inventory.reserve(productId, quantity);  // returns "res-8891"
+}
+
+@Compensation
+public void releaseInventory(CompensationContext ctx) {
+    inventory.release(ctx.result());   // "res-8891"
+}
+```
+
+```java
+SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
+    chatClient.prompt()
+        .user("Place order for 2 units of product p-1")
+        .toolCallbacks(sagacity.wrap(orderTools))
+        .call().chatResponse());
 ```
 
 ---

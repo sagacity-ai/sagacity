@@ -11,14 +11,13 @@ _Last updated: 2026-09-24_
 
 The library is feature-complete for its core promise:
 
-- Declarative workflows (`@Workflow`, `@Stage`, `@Gate`, `@Check`)
-- Automatic compensation on failure — reverse order, no boilerplate
-- Human approval gates that survive JVM restarts (JDBC-backed)
-- SHA-256 tamper-evident audit trail — verifiable via REST
+- Human approval gates — workflow pauses, gate survives JVM restart, compliance officer approves or rejects
+- Gate rejection triggers automatic unwind — completed stages compensate in reverse, no orphaned state
+- SHA-256 tamper-evident audit trail — every stage, gate, and approval recorded and verifiable
 - Embedded UI at `/sagacity/ui` — zero config, ships in the JAR
 - Universal JDBC — PostgreSQL, MySQL, MariaDB, Oracle, H2, SQLite
 
-**The library works. The problem now is nobody knows it exists.**
+**The product is human oversight and audit. Compensation is the mechanism that makes gate rejection safe.**
 
 ---
 
