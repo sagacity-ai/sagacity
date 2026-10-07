@@ -15,7 +15,7 @@ Human oversight and audit for Spring AI agents.
 
 <div class="sg-cta" markdown>
 [Get started](getting-started.md){ .md-button .md-button--primary }
-[Workflows guide](guides/workflows.md){ .md-button }
+[Approval gates](guides/approval-gates.md){ .md-button }
 [View on GitHub](https://github.com/sumitvairagar/sagacity){ .md-button }
 </div>
 
@@ -38,24 +38,11 @@ Sagacity is the governance layer that sits between your Spring AI agent and the 
 
 <div class="sg-card" markdown>
 
-### <span class="sg-dot sg-dot--green"></span> Verifiable workflows
+### <span class="sg-dot sg-dot--green"></span> Annotate your tools
 
-Declare multi-step agent workflows with `@Workflow`, `@Stage`, `@Gate`, and `@Check`.
-The runtime executes stages in order, chains outputs as inputs, and compensates completed
-stages in reverse when anything fails. Topology is validated at startup — bad definitions
-crash the app, not a production run.
-
-[Guide →](guides/workflows.md)
-
-</div>
-
-<div class="sg-card" markdown>
-
-### <span class="sg-dot sg-dot--green"></span> Automatic compensation
-
-Every `@Stage` or `@Tool` paired with `@Compensable` gets an automatic undo when the
-workflow fails. Compensations run in reverse execution order, each outcome journaled.
-A failing compensation is recorded and the run continues — partial cleanup beats none.
+Drop `@Compensable` on any Spring AI `@Tool` method. Sagacity intercepts every call,
+journals it with a SHA-256 hash chain, and runs compensation in reverse if anything
+fails downstream. No new infrastructure. No restructuring of your agent.
 
 [Guide →](guides/compensation.md)
 
@@ -65,9 +52,9 @@ A failing compensation is recorded and the run continues — partial cleanup bea
 
 ### <span class="sg-dot sg-dot--amber"></span> Human approval gates
 
-Mark a stage with `@Gate(approvalRequired = true)` and the workflow pauses before it
-executes. Resume via REST or programmatically. The approval is bound to the exact input
-the approver saw — a re-planning agent cannot substitute a different payload.
+Mark a tool as `IRREVERSIBLE` and the agent pauses before it executes. Resume via REST,
+the embedded UI, or programmatically. The approval is bound to the exact input the
+approver saw — a re-planning agent cannot substitute a different payload.
 
 [Guide →](guides/approval-gates.md)
 
@@ -77,11 +64,23 @@ the approver saw — a re-planning agent cannot substitute a different payload.
 
 ### <span class="sg-dot sg-dot--blue"></span> Tamper-evident audit
 
-Every stage execution is journaled with SHA-256 hash chaining. Export as JSON Lines.
+Every tool execution is journaled with SHA-256 hash chaining. Export as JSON Lines.
 Verify the chain via REST to detect any modification made directly in the database.
 Maps directly to EU AI Act Article 12.
 
 [Guide →](guides/audit-and-verification.md)
+
+</div>
+
+<div class="sg-card" markdown>
+
+### <span class="sg-dot sg-dot--green"></span> Verifiable workflows (advanced)
+
+For explicit multi-step processes: declare `@Workflow`, `@Stage`, `@Gate`, and `@Check`.
+The runtime executes stages in order, chains outputs as inputs, and compensates in
+reverse when anything fails. Topology validated at startup.
+
+[Guide →](guides/workflows.md)
 
 </div>
 
@@ -200,14 +199,14 @@ Sagacity answers a different question: when your agent succeeds technically but 
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 
 <!-- Optional: declarative workflow engine -->
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-workflows</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -223,13 +222,13 @@ Requires Java 17+, Spring AI 2.0.0, Spring Boot 4.0.x.
 
 ## Status
 
-`0.3.0` ships the workflow engine. The compensation, approval, audit, and workflow paths
-are covered by **202 tests** across unit and integration suites, but the library has not
-been battle-tested in production by anyone yet.
+`0.4.0` ships durable JDBC-backed workflow state — runs survive JVM restarts, gates stay
+open across deploys. The compensation, approval, audit, and workflow paths are covered by
+**237 tests** across unit and integration suites, but the library has not been
+battle-tested in production by anyone yet.
 
 Read the [threat model](concepts/threat-model.md) before relying on the audit trail for
-anything that matters. Workflow state is in-memory in v0.3 — runs are lost on JVM restart.
-JDBC-backed durable state is the v0.4 priority.
+anything that matters.
 
-Known gaps: no streaming tool-call support, no LangChain4j adapter, no approval dashboard UI.
+Known gaps: no streaming tool-call support, no LangChain4j adapter.
 See the [roadmap](about/roadmap.md).
