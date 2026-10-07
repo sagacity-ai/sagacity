@@ -10,14 +10,13 @@ This is the gap Sagacity fills.
 
 ## The problem in concrete terms
 
-Imagine an order-fulfilment agent. It:
+Imagine an expense-claim agent. It:
 
-1. Validates the order
-2. Reserves inventory
-3. Charges the card
-4. Sends a confirmation email
+1. Validates the claim against policy
+2. Deducts the approved amount from the department budget
+3. Transfers the money to the employee's account
 
-Step 3 is irreversible. If the agent charges the wrong card — wrong amount, wrong customer, duplicate charge — you cannot un-send that money without a manual reversal process, a support ticket, and an unhappy customer.
+Step 3 is irreversible. Once money leaves the company account, you cannot recall it without a manual reversal process, a support ticket, and an unhappy finance team.
 
 Most Spring AI agents have no mechanism to pause before step 3 and ask a human to confirm. The tool just runs.
 
@@ -28,60 +27,41 @@ Most Spring AI agents have no mechanism to pause before step 3 and ask a human t
 Two annotations. That's it.
 
 ```java
-@Tool(description = "Charge the customer's card")
+@Tool(description = "Transfer the approved amount to the employee bank account")
 @Compensable(reversibility = Reversibility.IRREVERSIBLE)
-public String chargeCard(String orderId, BigDecimal amount) {
-    return payments.charge(orderId, amount);
+public String transferMoney(String deductionRef, String employeeId) {
+    return payments.wire(employeeId, deductionRef);
 }
 ```
 
 `@Compensable(reversibility = Reversibility.IRREVERSIBLE)` tells Sagacity: before this tool executes, pause the saga and wait for human approval.
 
-The agent stops. A pending approval appears in the REST API (and the embedded UI at `/sagacity/ui`). A human reviews the payload and clicks Approve or Reject. If approved, the tool executes and the saga continues. If rejected, Sagacity automatically compensates every step that already ran — in reverse order.
+The agent stops. A pending approval appears in the REST API and the embedded UI at `/sagacity/ui`. A compliance officer reviews the payload and clicks Approve or Reject. If approved, the transfer executes and the saga continues. If rejected, Sagacity automatically compensates every step that already ran — in reverse order.
 
 ---
 
-## The full workflow pattern
+## What happens when the human rejects
 
-For multi-step processes, `sagacity-workflows` gives you a declarative workflow engine:
+If the compliance officer rejects the transfer — "this employee is on leave, claim submitted in error" — Sagacity unwinds:
 
-```java
-@Workflow("refund-approval")
-@Component
-public class RefundWorkflow {
-
-    @Stage(order = 1)
-    @Compensable(by = "cancelValidation")
-    public String validateRefund(String orderId) {
-        return validation.check(orderId);
-    }
-
-    @Stage(order = 2)
-    @Compensable(by = "reverseRefund")
-    public String issueRefund(String validationId) {
-        return payments.refund(validationId);
-    }
-
-    @Stage(order = 3)
-    @Gate(approvalRequired = true,
-          reason = "Compliance must approve before customer is notified")
-    public String notifyCompliance(String refundId) {
-        return compliance.log(refundId);
-    }
-
-    @Compensation
-    public void cancelValidation(CompensationContext ctx) {
-        validation.cancel(ctx.result());
-    }
-
-    @Compensation
-    public void reverseRefund(CompensationContext ctx) {
-        payments.reverse(ctx.result());
-    }
-}
+```
+Step 2: deductBudget     → COMPENSATED  ↩  budget restored
+Step 1: validateClaim    → COMPENSATED  ↩  validation cancelled
+Step 3: transferMoney    → NEVER RAN    ✅  no money moved
 ```
 
-Stages execute in order. Each stage's return value is automatically injected as the next stage's input. The `@Gate` pauses execution — the workflow sits in `PAUSED_AT_GATE` state until a human approves via `POST /sagacity/workflows/{runId}/gates/notifyCompliance/approve`. If anything fails at any stage, compensations run in reverse.
+No orphaned budget deduction. No money moved. Every step journaled with a SHA-256 hash chain.
+
+---
+
+## What happens when a step fails without a human
+
+If step 2 fails — budget limit exceeded — Sagacity detects the failure and compensates automatically, even when Spring AI's `DefaultToolCallingManager` swallows the exception and feeds it back to the model as text. Sagacity decorates at the callback level, inside that catch — it always sees the raw failure first.
+
+```
+Step 1: validateClaim    → COMPENSATED  ↩  validation cancelled
+Step 2: deductBudget     → FAILED       ✖  budget limit exceeded
+```
 
 ---
 
@@ -121,5 +101,5 @@ No new infrastructure. No separate cluster. No rewriting your agent code.
 
 - [GitHub](https://github.com/sagacity-ai/sagacity)
 - [Getting started guide](getting-started.md)
+- [Approval gates guide](guides/approval-gates.md)
 - [Maven Central](https://central.sonatype.com/artifact/io.github.sumitvairagar/sagacity-spring-boot-starter)
-- [Verifiable workflows guide](guides/workflows.md)
