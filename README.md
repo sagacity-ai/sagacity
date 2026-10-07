@@ -34,9 +34,56 @@ Sagacity is the governance layer that sits between your Spring AI agent and the 
 
 ## Two ways to use Sagacity
 
-### Option A — Declare a verifiable workflow (`sagacity-workflows`)
+**Option A** is for most Spring AI agents — you already have `@Tool` methods, Sagacity adds safety in two annotations. **Option B** is for processes where you want an explicit ordered sequence with declared stages and gates.
 
-Define the entire multi-step process as annotated stages. The runtime executes them in order, pauses at human approval gates, and compensates in reverse on any failure or rejection. Human gates survive JVM restarts.
+### Option A — Annotate your existing Spring AI tools
+
+Already have a Spring AI agent with `@Tool` methods? Add Sagacity in two annotations. No workflow declarations, no restructuring — Sagacity intercepts every call, journals it, and compensates in reverse if anything goes wrong.
+
+```java
+@Component
+public class OrderTools {
+
+    @Tool(description = "Reserve inventory for a product")
+    @Compensable(by = "releaseInventory")           // ← undo this if anything fails later
+    public String reserveInventory(String productId, int quantity) {
+        return inventory.reserve(productId, quantity);  // returns "res-8891"
+    }
+
+    @Compensation
+    public void releaseInventory(CompensationContext ctx) {
+        inventory.release(ctx.result());   // ctx.result() = "res-8891"
+    }
+
+    @Tool(description = "Charge the customer")
+    @Compensable(by = "refundCustomer")
+    public String chargeCustomer(String customerId, double amount) {
+        return payments.charge(customerId, amount);
+    }
+
+    @Compensation
+    public void refundCustomer(CompensationContext ctx) {
+        payments.refund(ctx.result());
+    }
+}
+```
+
+```java
+// Run your agent inside a saga — Sagacity wraps every tool call
+SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
+    chatClient.prompt()
+        .user("Place order for 2 units of product p-1")
+        .toolCallbacks(sagacity.wrap(orderTools))   // ← one line change
+        .call().chatResponse());
+
+// If chargeCustomer succeeds but a later step fails:
+// → refundCustomer runs automatically. Clean state.
+// Every step is journaled with a SHA-256 hash chain.
+```
+
+### Option B — Declare a verifiable workflow (`sagacity-workflows`)
+
+When you need an explicit multi-step process with ordered stages, human approval gates, and guaranteed reverse compensation — declare it as a `@Workflow`. The runtime executes stages in order, pauses at gates, and compensates in reverse on any failure or rejection. Gates survive JVM restarts.
 
 ```java
 @Workflow("refund-approval")
@@ -94,31 +141,6 @@ workflowRuntime.rejectGate(handle.runId(), "notifyCompliance", "Policy threshold
 handle.awaitCompletion(30, TimeUnit.MINUTES);
 ```
 
-### Option B — Wrap individual tool calls
-
-Annotate your Spring AI tools with `@Compensable`. Sagacity intercepts every call, journals it, and compensates in reverse if the saga fails. No full workflow declaration needed — useful when your process is LLM-driven rather than declarative.
-
-```java
-@Tool(description = "Reserve inventory")
-@Compensable(by = "releaseInventory")
-public String reserveInventory(String productId, int quantity) {
-    return inventory.reserve(productId, quantity);  // returns "res-8891"
-}
-
-@Compensation
-public void releaseInventory(CompensationContext ctx) {
-    inventory.release(ctx.result());   // "res-8891"
-}
-```
-
-```java
-SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
-    chatClient.prompt()
-        .user("Place order for 2 units of product p-1")
-        .toolCallbacks(sagacity.wrap(orderTools))
-        .call().chatResponse());
-```
-
 ---
 
 ## Documentation
@@ -128,8 +150,10 @@ Full documentation: **[sagacity-ai.github.io/sagacity](https://sagacity-ai.githu
 | | |
 |---|---|
 | [Getting started](https://sagacity-ai.github.io/sagacity/getting-started/) | Working example in five minutes |
-| [Verifiable workflows](https://sagacity-ai.github.io/sagacity/guides/workflows/) | `@Stage`, `@Gate`, `@Check` — the full workflow engine |
-| [Approval gates](https://sagacity-ai.github.io/sagacity/guides/approval-gates/) | Human sign-off for irreversible tools |
+| [Approval gates](https://sagacity-ai.github.io/sagacity/guides/approval-gates/) | Human sign-off before irreversible tool calls |
+| [Compensation](https://sagacity-ai.github.io/sagacity/guides/compensation/) | Automatic undo when an agent step fails |
+| [Verifiable workflows](https://sagacity-ai.github.io/sagacity/guides/workflows/) | Advanced: `@Stage`, `@Gate`, `@Check` — explicit ordered processes |
+| [Audit and verification](https://sagacity-ai.github.io/sagacity/guides/audit-and-verification/) | Export and verify the tamper-evident journal |
 | [Production checklist](https://sagacity-ai.github.io/sagacity/guides/production-checklist/) | Read before pointing this at real money |
 | [Threat model](https://sagacity-ai.github.io/sagacity/concepts/threat-model/) | What the audit trail does and does not defend against |
 | [REST API](https://sagacity-ai.github.io/sagacity/reference/rest-api/) | Endpoint reference |
