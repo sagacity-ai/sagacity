@@ -72,28 +72,16 @@ Maps directly to EU AI Act Article 12.
 
 </div>
 
-<div class="sg-card" markdown>
-
-### <span class="sg-dot sg-dot--green"></span> Verifiable workflows (advanced)
-
-For explicit multi-step processes: declare `@Workflow`, `@Stage`, `@Gate`, and `@Check`.
-The runtime executes stages in order, chains outputs as inputs, and compensates in
-reverse when anything fails. Topology validated at startup.
-
-[Guide →](guides/workflows.md)
-
-</div>
-
 </div>
 
 ---
 
 <p class="sg-eyebrow">Two minutes to understand the shape</p>
 
-## Wrap individual tools, or declare a workflow
+## Annotate your tools, run inside a saga
 
-**Option A — annotate individual tools.** Sagacity intercepts every Spring AI tool call,
-journals it, and compensates on failure. Drop `@Compensable` on any `@Tool` method.
+Drop `@Compensable` on any Spring AI `@Tool` method. Sagacity intercepts every call,
+journals it, and compensates on failure. One line change to how you run your agent.
 
 ```java
 @Tool(description = "Charge the customer")
@@ -108,55 +96,17 @@ public void refundCharge(CompensationContext ctx) {
 }
 ```
 
-**Option B — declare a verifiable workflow.** Define the entire multi-step process as
-annotated stages. Stage outputs chain as inputs automatically. Gates, checks, and
-compensation are all first-class.
-
 ```java
-@Workflow("refund-approval")
-@Component
-public class RefundWorkflow {
+// Run your agent inside a saga — one line change
+SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
+    chatClient.prompt()
+        .user("Place order for customer C-991")
+        .toolCallbacks(sagacity.wrap(orderTools))   // ← wrap your tools
+        .call().chatResponse());
 
-    @Stage(order = 1)
-    @Compensable(by = "cancelValidation")       // undo if anything fails later
-    public String validateRefund(String orderId) {
-        return validation.check(orderId);        // returns "val-8821"
-    }
-
-    @Stage(order = 2)
-    @Compensable(by = "reverseRefund")
-    public String issueRefund(String validationId) {
-        // 'validationId' injected automatically from stage 1's return value
-        return payments.refund(validationId);    // returns "ref-4492"
-    }
-
-    @Stage(order = 3)
-    @Gate(approvalRequired = true,               // workflow pauses here
-          reason = "Compliance must approve before customer is notified")
-    public String notifyCompliance(String refundId) {
-        // POST /sagacity/workflows/{runId}/gates/notifyCompliance/approve
-        return compliance.log(refundId);
-    }
-
-    @Stage(order = 4)
-    public void sendConfirmation(String complianceRef) {
-        email.send(complianceRef, "Your refund is confirmed");
-    }
-
-    @Compensation
-    public void cancelValidation(CompensationContext ctx) { validation.cancel(ctx.result()); }
-
-    @Compensation
-    public void reverseRefund(CompensationContext ctx) { payments.reverse(ctx.result()); }
-}
-```
-
-```java
-// Run async — pauses at stage 3 until approved
-WorkflowHandle handle = workflowRuntime.runAsync(refundWorkflow, "ORDER-88210");
-workflowRuntime.approveGate(handle.runId(), "notifyCompliance");
-handle.awaitCompletion(30, TimeUnit.MINUTES);
-// Every stage journaled. Failure at any stage compensates in reverse.
+// If chargeCard succeeded but a later step failed:
+// → refundCharge runs automatically
+// → every step is journaled with a SHA-256 hash chain
 ```
 
 <p class="sg-eyebrow">The distinction that matters</p>

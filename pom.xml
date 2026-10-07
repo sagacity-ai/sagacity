@@ -53,7 +53,6 @@
         <module>sagacity-core</module>
         <module>sagacity-spring-ai</module>
         <module>sagacity-spring-boot-starter</module>
-        <module>sagacity-workflows</module>
         <module>sagacity-examples</module>
         <!-- Last: aggregates coverage over everything above -->
         <module>sagacity-coverage</module>
@@ -95,11 +94,6 @@
             <dependency>
                 <groupId>io.github.sumitvairagar</groupId>
                 <artifactId>sagacity-spring-ai</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.sumitvairagar</groupId>
-                <artifactId>sagacity-workflows</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

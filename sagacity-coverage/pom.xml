@@ -51,11 +51,6 @@
             <artifactId>sagacity-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.github.sumitvairagar</groupId>
-            <artifactId>sagacity-workflows</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
     <build>

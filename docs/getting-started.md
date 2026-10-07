@@ -12,13 +12,6 @@ when a later step fails. About five minutes.
     <artifactId>sagacity-spring-boot-starter</artifactId>
     <version>0.4.0</version>
 </dependency>
-
-<!-- Optional: declarative workflow engine -->
-<dependency>
-    <groupId>io.github.sumitvairagar</groupId>
-    <artifactId>sagacity-workflows</artifactId>
-    <version>0.4.0</version>
-</dependency>
 ```
 
 The starter brings in `sagacity-core` and `sagacity-spring-ai`. If you are not
@@ -155,59 +148,3 @@ startup. See [Configuration](reference/configuration.md).
 - [Approval gates](guides/approval-gates.md) — for tools that cannot be undone at all
 - [Audit and verification](guides/audit-and-verification.md) — proving what happened
 - [Production checklist](guides/production-checklist.md) — before you point this at real money
-- [Verifiable workflows](guides/workflows.md) — advanced: declare multi-step agent workflows with `@Stage`, `@Gate`, `@Check`
-
----
-
-## Going further: declare a workflow
-
-If your agent runs a fixed sequence of steps, `sagacity-workflows` lets you
-declare the entire flow as annotated stages. Compensation, gates, and checks
-are all built in — no orchestration code required.
-
-```java
-@Workflow("order-placement")
-@Component
-public class OrderWorkflow {
-
-    @Stage(order = 1)
-    @Compensable(by = "releaseInventory")
-    public Reservation reserveInventory(String orderId) {
-        return inventory.reserve(orderId);
-    }
-
-    @Stage(order = 2)
-    @Compensable(by = "refundCharge")
-    public ChargeReceipt chargeCard(Reservation reservation) {
-        // reservation injected automatically from stage 1's return value
-        return payments.charge(reservation.customerId(), reservation.total());
-    }
-
-    @Stage(order = 3)
-    @Gate(approvalRequired = true, reason = "Email cannot be unsent")
-    public void sendConfirmation(ChargeReceipt receipt) {
-        email.send(receipt.customerId(), "Order confirmed!");
-    }
-
-    @Compensation
-    public void releaseInventory(CompensationContext ctx) { inventory.release(ctx.result()); }
-
-    @Compensation
-    public void refundCharge(CompensationContext ctx) { payments.refund(ctx.result()); }
-}
-```
-
-```java
-// Async: workflow pauses at stage 3 until someone approves
-WorkflowHandle handle = workflowRuntime.runAsync(orderWorkflow, orderId);
-
-// Approve via REST:
-// POST /sagacity/workflows/{runId}/gates/sendConfirmation/approve
-
-// Or programmatically:
-workflowRuntime.approveGate(handle.runId(), "sendConfirmation");
-
-handle.awaitCompletion(30, TimeUnit.MINUTES);
-```
-
-See the [full workflows guide](guides/workflows.md) for stage chaining, pre-flight checks, timeout gates, and status polling.

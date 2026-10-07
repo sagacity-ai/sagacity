@@ -8,11 +8,10 @@
 [![Docs](https://img.shields.io/badge/docs-sagacity--ai.github.io%2Fsagacity-blue.svg)](https://sagacity-ai.github.io/sagacity/)
 [![Tests](https://img.shields.io/badge/tests-237%20passing-brightgreen.svg)]()
 
-**Human oversight and audit for Spring AI agents.** Pause before irreversible actions. Approve or reject. Unwind automatically if rejected. Every decision tamper-evident.
+**Production safety for Spring AI agents.** Pause before irreversible actions. Approve or reject. Unwind automatically if rejected. Every decision tamper-evident.
 
-<!-- Animated diagram: tools execute → failure → compensation flows backward -->
 <p align="center">
-  <img src="docs/saga-flow.svg" alt="Sagacity: workflow stages execute in order, gate pauses for human approval, failure triggers reverse compensation, every step journaled with hash chain" width="860"/>
+  <img src="docs/saga-flow.svg" alt="Sagacity: tool calls execute, gate pauses for human approval, failure triggers reverse compensation, every step journaled with hash chain" width="860"/>
 </p>
 
 ---
@@ -28,17 +27,13 @@ Your AI agents are making decisions that affect real people — approving transa
 
 Every framework lets agents act. **None requires a human to approve before they do. None compensates when they shouldn't have. None produces evidence for a regulator.**
 
-Sagacity is the governance layer that sits between your Spring AI agent and the actions it takes.
+Sagacity is the safety layer that sits between your Spring AI agent and the actions it takes.
 
 ---
 
-## Two ways to use Sagacity
+## How it works
 
-**Option A** is for most Spring AI agents — you already have `@Tool` methods, Sagacity adds safety in two annotations. **Option B** is for processes where you want an explicit ordered sequence with declared stages and gates.
-
-### Option A — Annotate your existing Spring AI tools
-
-Already have a Spring AI agent with `@Tool` methods? Add Sagacity in two annotations. No workflow declarations, no restructuring — Sagacity intercepts every call, journals it, and compensates in reverse if anything goes wrong.
+Add `@Compensable` to any Spring AI `@Tool` method. Wrap your tools. Run your agent inside `sagacity.saga()`. That's the entire integration.
 
 ```java
 @Component
@@ -65,80 +60,30 @@ public class OrderTools {
     public void refundCustomer(CompensationContext ctx) {
         payments.refund(ctx.result());
     }
+
+    @Tool(description = "Send wire transfer — cannot be undone")
+    @Compensable(reversibility = Reversibility.IRREVERSIBLE)
+    public String sendWireTransfer(String orderId) {
+        // Saga pauses here. Approve via REST or UI before this executes.
+        return payments.wire(orderId);
+    }
 }
 ```
 
 ```java
-// Run your agent inside a saga — Sagacity wraps every tool call
-SagaResult<ChatResponse> result = sagacity.saga("order-123", () ->
+// One line change from your existing agent
+SagaResult<ChatResponse> result = sagacity.saga("order-" + UUID.randomUUID(), () ->
     chatClient.prompt()
-        .user("Place order for 2 units of product p-1")
-        .toolCallbacks(sagacity.wrap(orderTools))   // ← one line change
+        .user(userRequest)
+        .toolCallbacks(sagacity.wrap(orderTools))   // ← wrap your tools
         .call().chatResponse());
 
-// If chargeCustomer succeeds but a later step fails:
-// → refundCustomer runs automatically. Clean state.
-// Every step is journaled with a SHA-256 hash chain.
-```
-
-### Option B — Declare a verifiable workflow (`sagacity-workflows`)
-
-When you need an explicit multi-step process with ordered stages, human approval gates, and guaranteed reverse compensation — declare it as a `@Workflow`. The runtime executes stages in order, pauses at gates, and compensates in reverse on any failure or rejection. Gates survive JVM restarts.
-
-```java
-@Workflow("refund-approval")
-@Component
-public class RefundWorkflow {
-
-    @Stage(order = 1)
-    @Compensable(by = "cancelValidation")       // ← undo if anything fails later
-    public String validateRefund(String orderId) {
-        return validation.check(orderId);        // returns "val-8821"
-    }
-
-    @Stage(order = 2)
-    @Compensable(by = "reverseRefund")
-    public String issueRefund(String validationId) {
-        return payments.refund(validationId);    // returns "ref-4492"
-    }
-
-    @Stage(order = 3)
-    @Gate(approvalRequired = true,               // ← workflow pauses here
-          reason = "Compliance must approve before customer is notified")
-    public String notifyCompliance(String refundId) {
-        // only runs AFTER a human approves via UI or REST
-        return compliance.log(refundId);
-    }
-
-    @Stage(order = 4)
-    public void sendConfirmation(String complianceRef) {
-        email.send(complianceRef, "Your refund is confirmed");
-    }
-
-    @Compensation
-    public void cancelValidation(CompensationContext ctx) {
-        validation.cancel(ctx.result());
-    }
-
-    @Compensation
-    public void reverseRefund(CompensationContext ctx) {
-        payments.reverse(ctx.result());
-    }
+switch (result.status()) {
+    case COMPLETED         -> // all tools ran, nothing failed
+    case AWAITING_APPROVAL -> // sendWireTransfer paused — waiting for human
+    case COMPENSATED       -> // something failed, earlier tools undone automatically
+    case COMPENSATION_FAILED -> // failed AND undo also failed — needs human investigation
 }
-```
-
-```java
-// Run async — pauses at stage 3 gate, survives JVM restart
-WorkflowHandle handle = workflowRuntime.runAsync(refundWorkflow, "ORDER-88210");
-
-// Approve via REST or the embedded UI at /sagacity/ui
-workflowRuntime.approveGate(handle.runId(), "notifyCompliance");
-
-// If rejected instead — stages 2 and 1 compensate automatically
-workflowRuntime.rejectGate(handle.runId(), "notifyCompliance", "Policy threshold exceeded");
-// → reverseRefund runs, then cancelValidation runs. Clean state.
-
-handle.awaitCompletion(30, TimeUnit.MINUTES);
 ```
 
 ---
@@ -152,34 +97,25 @@ Full documentation: **[sagacity-ai.github.io/sagacity](https://sagacity-ai.githu
 | [Getting started](https://sagacity-ai.github.io/sagacity/getting-started/) | Working example in five minutes |
 | [Approval gates](https://sagacity-ai.github.io/sagacity/guides/approval-gates/) | Human sign-off before irreversible tool calls |
 | [Compensation](https://sagacity-ai.github.io/sagacity/guides/compensation/) | Automatic undo when an agent step fails |
-| [Verifiable workflows](https://sagacity-ai.github.io/sagacity/guides/workflows/) | Advanced: `@Stage`, `@Gate`, `@Check` — explicit ordered processes |
 | [Audit and verification](https://sagacity-ai.github.io/sagacity/guides/audit-and-verification/) | Export and verify the tamper-evident journal |
 | [Production checklist](https://sagacity-ai.github.io/sagacity/guides/production-checklist/) | Read before pointing this at real money |
 | [Threat model](https://sagacity-ai.github.io/sagacity/concepts/threat-model/) | What the audit trail does and does not defend against |
 | [REST API](https://sagacity-ai.github.io/sagacity/reference/rest-api/) | Endpoint reference |
-| [Annotations](https://sagacity-ai.github.io/sagacity/reference/annotations/) | `@Compensable`, `@Workflow`, `@Stage`, `@Gate`, `@Check` |
+| [Annotations](https://sagacity-ai.github.io/sagacity/reference/annotations/) | `@Compensable`, `@Compensation`, `Reversibility` |
 
 ---
 
 ## Quick Start
 
 > **Want a runnable example in 5 minutes?**
-> Clone [sagacity-quickstart](https://github.com/sumitvairagar/sagacity-quickstart) — a self-contained Spring Boot app that shows compensation and the audit trail in action. Just add your API key and run.
+> Clone [sagacity-quickstart](https://github.com/sumitvairagar/sagacity-quickstart) — a self-contained Spring Boot app that shows compensation and the audit trail in action.
 
 ### 1. Add the dependency
 
 ```xml
-<!-- Core: tool-call compensation + audit trail -->
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
-</dependency>
-
-<!-- Optional: declarative workflow engine -->
-<dependency>
-    <groupId>io.github.sumitvairagar</groupId>
-    <artifactId>sagacity-workflows</artifactId>
     <version>0.4.0</version>
 </dependency>
 ```
@@ -193,12 +129,12 @@ public class OrderTools {
     @Tool(description = "Reserve inventory for a product")
     @Compensable(by = "releaseInventory")
     public String reserveInventory(String productId, int quantity) {
-        return inventoryService.reserve(productId, quantity);  // returns reservation ID
+        return inventoryService.reserve(productId, quantity);
     }
 
     @Compensation
     public void releaseInventory(CompensationContext ctx) {
-        inventoryService.release(ctx.result());   // ctx.result() = reservation ID
+        inventoryService.release(ctx.result());
     }
 
     @Tool(description = "Charge the customer")
@@ -215,7 +151,6 @@ public class OrderTools {
     @Tool(description = "Send wire transfer — cannot be undone")
     @Compensable(reversibility = Reversibility.IRREVERSIBLE)
     public String sendWireTransfer(String orderId) {
-        // Saga pauses here. REST approve/reject before this executes.
         return payments.wire(orderId);
     }
 }
@@ -241,41 +176,7 @@ public class OrderAgent {
 }
 ```
 
-### 4. Or declare a verifiable workflow
-
-```java
-@Workflow("order-placement")
-@Component
-public class OrderWorkflow {
-
-    @Stage(order = 1)
-    @Compensable(by = "releaseInventory")
-    public Reservation reserveInventory(String orderId) { ... }
-
-    @Stage(order = 2)
-    @Compensable(by = "refundCharge")
-    public ChargeReceipt chargeCard(Reservation reservation) {
-        // 'reservation' automatically injected from stage 1's return value
-        ...
-    }
-
-    @Stage(order = 3)
-    @Gate(approvalRequired = true, reason = "Wire transfer cannot be undone")
-    public void wireTransfer(ChargeReceipt receipt) { ... }
-
-    @Compensation public void releaseInventory(CompensationContext ctx) { ... }
-    @Compensation public void refundCharge(CompensationContext ctx) { ... }
-}
-```
-
-```java
-WorkflowHandle handle = workflowRuntime.runAsync(orderWorkflow, orderId);
-// Workflow pauses at step 3 → approve via REST or programmatically
-workflowRuntime.approveGate(handle.runId(), "wireTransfer");
-handle.awaitCompletion(30, TimeUnit.MINUTES);
-```
-
-### 5. Configure (application.yml)
+### 4. Configure (application.yml)
 
 ```yaml
 sagacity:
@@ -299,25 +200,25 @@ No DataSource? Sagacity falls back to an in-memory journal (great for dev/testin
 
 ## Embedded UI
 
-Add the dependency and open `http://localhost:8080/sagacity/ui`. No configuration, no separate deployment, no login required.
+Open `http://localhost:8080/sagacity/ui`. No configuration, no separate deployment, no login required.
 
-**List view** — all workflow runs at a glance, approve/reject gates inline:
+**List view** — all agent runs at a glance, approve/reject gates inline:
 
 <p align="center">
-  <img src="docs/sagacity-ui.png" alt="Sagacity embedded UI — workflow list with status badges, gate approval buttons, and stat strip" width="900"/>
+  <img src="docs/sagacity-ui.png" alt="Sagacity embedded UI — run list with status badges, gate approval buttons, and stat strip" width="900"/>
 </p>
 
-**Click any row** to open the stage flow diagram with the tamper-evident audit journal:
+**Click any row** to open the audit journal with hash verification:
 
 <p align="center">
-  <img src="docs/sagacity-ui-detail.png" alt="Sagacity workflow detail — node graph showing stage flow, gate approval banner, and SHA-256 audit journal" width="900"/>
+  <img src="docs/sagacity-ui-detail.png" alt="Sagacity run detail — gate approval banner and SHA-256 audit journal" width="900"/>
 </p>
 
 Disable with `sagacity.ui-enabled=false`.
 
 ---
 
-### Tool-call approval (saga-level)
+## REST API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -328,15 +229,6 @@ Disable with `sagacity.ui-enabled=false`.
 | `GET` | `/sagacity/audit/{sagaId}` | Export journal as JSON Lines |
 | `GET` | `/sagacity/audit/{sagaId}/verify` | Verify hash chain integrity |
 
-### Workflow management (`sagacity-workflows`)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/sagacity/workflows` | List all workflow runs |
-| `GET` | `/sagacity/workflows/{runId}` | Get a single run with status and stage progress |
-| `POST` | `/sagacity/workflows/{runId}/gates/{stageName}/approve` | Approve a gate |
-| `POST` | `/sagacity/workflows/{runId}/gates/{stageName}/reject` | Reject a gate (body: `{"reason": "..."}`) |
-
 ---
 
 ## Features
@@ -346,7 +238,7 @@ Disable with `sagacity.ui-enabled=false`.
 | `@Compensable` / `@Compensation` | ✅ | Declare undo logic per tool |
 | Reverse-order compensation | ✅ | On failure, undo steps in reverse |
 | Universal JDBC journal + SHA-256 hash chain | ✅ | PostgreSQL, MySQL, MariaDB, Oracle, H2, SQLite |
-| Human approval gates (tool-level) | ✅ | IRREVERSIBLE tools suspend until approved |
+| Human approval gates | ✅ | `IRREVERSIBLE` tools suspend until approved |
 | Approve/Reject REST API | ✅ | With approver identity in audit trail |
 | Audit export (JSON Lines) | ✅ | Compliance-ready, one entry per line |
 | Hash chain verification | ✅ | Detect any modification to history |
@@ -354,19 +246,12 @@ Disable with `sagacity.ui-enabled=false`.
 | Concurrent-safe | ✅ | Optimistic concurrency + unique-constraint retry |
 | Tool-level retry | ✅ | `@Compensable(retries=3, retryOn={...})` with exponential backoff |
 | Sagacity Cloud journal | ✅ | Write journal to hosted cloud instead of local DB |
-| `@Workflow` / `@Stage` / `@Gate` / `@Check` | ✅ **v0.3.0** | Declarative verifiable workflow engine |
-| Stage output chaining | ✅ **v0.3.0** | Each stage receives the previous stage's return value |
-| Startup topology validation | ✅ **v0.3.0** | Bad workflow definitions crash app at startup, not runtime |
-| `WorkflowHandle` async execution | ✅ **v0.3.0** | Non-blocking run with status polling |
-| Workflow REST API | ✅ **v0.3.0** | List runs, inspect status, approve/reject gates |
-| Embedded UI (`/sagacity/ui`) | ✅ **v0.3.0** | Zero-config dashboard — workflow runs, gate approvals, audit viewer |
-| JDBC-backed durable workflow state | ✅ **v0.4.0** | Workflow runs survive JVM restarts; gates stay open across deploys |
+| Embedded UI (`/sagacity/ui`) | ✅ | Zero-config dashboard — gate approvals, audit viewer |
+| Durable approval state | ✅ **v0.4.0** | Approval gates survive JVM restarts |
 
 ---
 
 ## How It Works
-
-### Tool-call path
 
 ```
 ChatClient → ToolCallingManager → ToolCallback
@@ -385,48 +270,31 @@ ChatClient → ToolCallingManager → ToolCallback
                   │                    │  runs @Compensation methods
 ```
 
-### Workflow path (sagacity-workflows)
-
-```
-workflowRuntime.runAsync(workflow, input)
-       │
-       ├── validates topology at startup (WorkflowTopologyValidator)
-       │
-       ├── for each @Stage in order:
-       │     ├── run @Check pre-flight checks
-       │     ├── if @Gate(approvalRequired): pause → wait for approve/reject
-       │     ├── execute stage method
-       │     ├── chain return value → next stage's input
-       │     └── on failure: compensate completed stages in reverse order
-       │
-       └── WorkflowHandle → status polling, awaitCompletion()
-```
-
 ---
 
 ## How Sagacity relates to Temporal
 
-Temporal is serious infrastructure — it just raised $550M at a $12.55B valuation and ships a Spring AI integration (`temporal-spring-ai`) that makes model calls durable activities. Temporal solves **durable execution**: if your process crashes, your workflow replays from exactly where it stopped. That is a genuinely hard infrastructure problem and Temporal solves it well.
+Temporal solves **durable execution** — if your process crashes, your workflow replays from exactly where it stopped. It handles distributed workers, cross-service orchestration, and horizontal scale. That is a genuinely hard infrastructure problem and Temporal solves it well.
 
-It is not the same problem Sagacity solves.
+That is not the same problem Sagacity solves.
 
-A workflow that resumes perfectly after a crash still leaves you with a charged card when the business logic says the order should be abandoned. Crash recovery cannot undo a side effect. **A refund is not a retry.**
+A process that resumes perfectly after a crash still leaves you with a charged card when the business logic says the order should be abandoned. Crash recovery cannot undo a side effect. **A refund is not a retry.**
 
 Sagacity answers: when your agent succeeds technically but the business says "this should not have happened," what gets unwound, who approved it before it ran, and what is the tamper-evident record?
 
 | | Temporal | Sagacity |
 |---|---|---|
-| Durable execution (survive process crash) | ✅ cluster-backed | ❌ v0.4 adds JDBC state, not the same |
+| Durable execution (survive process crash) | ✅ cluster-backed | ❌ not the same |
 | Distributed workers, horizontal scale | ✅ | ❌ single JVM |
 | Spring AI native integration | ✅ `temporal-spring-ai` (Preview) | ✅ `sagacity-spring-boot-starter` |
 | Undo side effects on **business** failure | ⚠️ possible via child workflow pattern | ✅ annotation-driven, first-class |
 | Tamper-evident SHA-256 audit trail | ❌ event history is operational, not compliance-grade | ✅ |
 | EU AI Act Article 12 compliance | ❌ | ✅ |
-| Human approval gates (first-class primitive) | ❌ | ✅ `@Gate(approvalRequired=true)` |
+| Human approval gates (first-class primitive) | ❌ | ✅ `Reversibility.IRREVERSIBLE` |
 | New infrastructure to run | ✅ cluster or Temporal Cloud | ❌ library only |
 | Adopt without rewriting agent code | ❌ must model as Workflows + Activities | ✅ annotate existing Spring AI tools |
 
-**They are complementary.** Use Temporal for durability and distributed scale. Use Sagacity for compensation semantics, human approval gates, and the compliance audit trail that regulators and compliance officers need — not just engineers debugging a stuck workflow.
+**They are complementary.** Use Temporal for durability and scale. Use Sagacity for compensation, approval gates, and the compliance audit trail.
 
 ---
 
@@ -438,11 +306,7 @@ sagacity-core                    # Journal, hash chain, compensation runner, app
 
 sagacity-spring-ai               # SagacityToolCallback, @Compensable processing, Sagacity facade
 
-sagacity-workflows               # @Workflow, @Stage, @Gate, @Check, WorkflowRuntime
-                                 # Topology validator, WorkflowHandle, REST gate controller
-
 sagacity-spring-boot-starter     # Auto-config wiring sagacity-core + sagacity-spring-ai
-                                 # + sagacity-workflows when on classpath
 
 sagacity-examples                # Order-placing agent demo with induced failure
 ```
@@ -457,7 +321,7 @@ The EU AI Act (enforceable from **2026-08-02**) requires tamper-evident, traceab
 |------------------------|-----------------|
 | Automatic logging | Every tool call journaled (INTENT/EXECUTED/FAILED) |
 | Tamper-evident | SHA-256 hash chain, verifiable via REST API |
-| Traceable decisions | Saga/workflow run ID links all steps; approval identity recorded |
+| Traceable decisions | Saga run ID links all steps; approval identity recorded |
 | Retention | JDBC persistence (PostgreSQL, MySQL, and more) |
 
 ---
@@ -471,11 +335,10 @@ The EU AI Act (enforceable from **2026-08-02**) requires tamper-evident, traceab
 | M2 — Approval gates + audit export | ✅ Done |
 | M3 — Spring Boot Starter + Maven Central | ✅ Done (v0.1.0) |
 | M3.5 — Cloud journal + retry + universal JDBC | ✅ Done (v0.2.0) |
-| M4 — Workflow engine (`sagacity-workflows`) | ✅ Done (v0.3.0) |
 | M4 — Embedded UI (`/sagacity/ui`) | ✅ Done (v0.3.0) |
-| M5 — JDBC-backed durable workflow state | ✅ Done (v0.4.0) |
-| M5 — Approval dashboard UI (Sagacity Cloud) | ✅ Done (v0.4.0) |
+| M5 — Durable approval state (JDBC-backed) | ✅ Done (v0.4.0) |
 | M6 — LangChain4j adapter | 📋 Planned |
+| M6 — `sagacity-risk` / `RiskScorer` facade | 📋 Planned |
 
 See [docs/about/roadmap.md](docs/about/roadmap.md) for details.
 
@@ -489,7 +352,7 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 - LangChain4j adapter (`sagacity-langchain4j`)
 - MCP tool support — compensations for MCP-server tools
 - Typed compensation methods — bind original parameters directly
-- Approval expiry — `@Gate(timeoutSeconds=N)` auto-fail
+- `sagacity-risk` — `RiskScorer` facade for pre-execution risk scoring
 
 ---
 

@@ -30,10 +30,8 @@ public class SagacityUiController {
     private static final String UI_RESOURCE = "META-INF/sagacity-ui/index.html";
 
     /**
-     * Serve the embedded UI. The HTML page calls {@code /sagacity/workflows},
-     * {@code /sagacity/approvals}, and {@code /sagacity/audit/*} — all of which
-     * are registered by {@link SagacityAutoConfiguration} and
-     * {@link dev.sagacity.workflows.autoconfigure.WorkflowAutoConfiguration}.
+     * Serve the embedded UI. The HTML page calls {@code /sagacity/approvals}
+     * and {@code /sagacity/audit/*} — all registered by {@link SagacityAutoConfiguration}.
      */
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> ui() throws IOException {

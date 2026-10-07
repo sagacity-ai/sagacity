@@ -101,8 +101,8 @@ but there's no pricing page, no clear call to action, no email to contact.
 |---|---|---|
 | v0.1.0 (M0–M3) | Aug 7, 2026 | Compensation, hash-chained journal, approval gates, Maven Central, 106 tests |
 | v0.2.0 (M3.5) | Sept 17, 2026 | Cloud journal, retry with backoff, universal JDBC (MySQL/Oracle/H2) |
-| v0.3.0 (M4) | Sept 22, 2026 | `sagacity-workflows` — `@Stage`, `@Gate`, `@Check`, embedded UI |
-| v0.4.0 (M5) | Sept 23, 2026 | Durable JDBC workflow store — gate approvals survive restarts |
+| v0.3.0 (M4) | Sept 22, 2026 | Embedded UI (`/sagacity/ui`), `CloudSideEffectJournal`, `CompositeWorkflowRunStore` |
+| v0.4.0 (M5) | Sept 23, 2026 | Durable JDBC-backed state — approval gates survive restarts |
 
 ---
 

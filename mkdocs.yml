@@ -76,7 +76,6 @@ nav:
       - Approval gates for irreversible tools: guides/approval-gates.md
       - Audit export and verification: guides/audit-and-verification.md
       - Production checklist: guides/production-checklist.md
-      - Verifiable workflows (advanced): guides/workflows.md
   - Reference:
       - Annotations: reference/annotations.md
       - Sagacity API: reference/api.md
