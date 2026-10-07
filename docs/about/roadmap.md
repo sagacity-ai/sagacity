@@ -16,8 +16,9 @@ The library is feature-complete for its core promise:
 - SHA-256 tamper-evident audit trail — every stage, gate, and approval recorded and verifiable
 - Embedded UI at `/sagacity/ui` — zero config, ships in the JAR
 - Universal JDBC — PostgreSQL, MySQL, MariaDB, Oracle, H2, SQLite
+- 237 tests across unit and integration suites
 
-**The product is human oversight and audit. Compensation is the mechanism that makes gate rejection safe.**
+**The product is human oversight and audit for Spring AI agents. Compensation is the mechanism that makes gate rejection safe.**
 
 ---
 
@@ -72,6 +73,7 @@ without changing the core library at all.
 
 | Item | Why it matters |
 |---|---|
+| **`sagacity-risk` module** — `RiskScorer` facade + `@RiskScored` annotation | Wire any decision model (Jev, OpenAI Decisions, local LLM) as a pre-execution gate. Low risk → auto-approve. High risk → `@Gate` fires. Human only sees genuinely uncertain calls. |
 | **LangChain4j adapter** — `sagacity-langchain4j` module | LangChain4j has serious enterprise adoption. Same compensation story applies. |
 | **MCP tool support** — compensations for MCP-server tools declared client-side | Spring AI 2.0 has first-class MCP. Any agent using MCP tools needs compensation too. |
 | **Streaming tool-call support** | Currently synchronous ChatClient flows only. Streaming agents can't use Sagacity. |

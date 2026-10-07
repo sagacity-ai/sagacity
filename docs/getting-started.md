@@ -10,14 +10,14 @@ when a later step fails. About five minutes.
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 
 <!-- Optional: declarative workflow engine -->
 <dependency>
     <groupId>io.github.sumitvairagar</groupId>
     <artifactId>sagacity-workflows</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -153,9 +153,9 @@ startup. See [Configuration](reference/configuration.md).
 ## Next
 
 - [Approval gates](guides/approval-gates.md) — for tools that cannot be undone at all
-- [Verifiable workflows](guides/workflows.md) — declare multi-step agent workflows with `@Stage`, `@Gate`, `@Check`
 - [Audit and verification](guides/audit-and-verification.md) — proving what happened
 - [Production checklist](guides/production-checklist.md) — before you point this at real money
+- [Verifiable workflows](guides/workflows.md) — advanced: declare multi-step agent workflows with `@Stage`, `@Gate`, `@Check`
 
 ---
 

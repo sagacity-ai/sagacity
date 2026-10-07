@@ -1,12 +1,12 @@
-# The saga model
+# The compensation model
 
 ## The problem
 
-An agent performs a sequence of steps with real side effects. Step 4 fails. Steps
-1–3 already happened, in production, to real systems.
+An AI agent executes a sequence of tool calls with real side effects. The third
+tool fails. The first two already happened — in production, to real systems.
 
-Retrying does not help — the card is already charged. Rolling back does not exist
-— there is no database transaction spanning Stripe, your warehouse, and an email
+Retrying does not help — the card is already charged. Rolling back does not exist —
+there is no database transaction spanning Stripe, your warehouse, and an email
 provider. This is the situation the saga pattern was described for in 1987, long
 before agents: a long-lived operation that cannot hold a lock, decomposed into
 steps each of which has a **compensating action**.

@@ -1,29 +1,36 @@
 # Architecture
 
 For contributors, and for anyone deciding whether to trust this in their stack.
-[The saga model](saga-model.md) explains *why*; this page explains *how*.
+[The compensation model](saga-model.md) explains *why*; this page explains *how*.
 
 ## Modules
 
 ```
 sagacity-core                 no Spring dependency at all
 ├── journal/                  SideEffectJournal, JournalEntry, Phase, HashChain
-│                             InMemorySideEffectJournal, PostgresSideEffectJournal
+│                             InMemorySideEffectJournal, JdbcSideEffectJournal
 ├── compensation/             CompensationRunner, CompensationRegistry,
 │                             CompensationContext, CompensationReport
 ├── approval/                 ApprovalStore, ApprovalRequest, ApprovalDecision,
-│                             InMemoryApprovalStore, PostgresApprovalStore
+│                             InMemoryApprovalStore, JdbcApprovalStore
 ├── audit/                    AuditExporter
 └── annotation/               @Compensable, @Compensation, Reversibility
 
 sagacity-spring-ai            depends on core + spring-ai-model
 ├── Sagacity                  the facade — wrap(), saga(), approve/reject/resumeSaga
-├── SagacityToolCallback      the decorator that does the journaling
+├── SagacityToolCallback      the decorator that journals every tool call
 ├── CompensationScanner       reflection over @Compensable at wrap() time
 ├── SagaScope                 thread-bound saga context
 └── SagaResult                outcome of a saga run
 
-sagacity-spring-boot-starter  auto-configuration + REST
+sagacity-workflows            optional — declarative multi-step agent workflows
+├── @Workflow / @Stage        ordered stage declarations
+├── @Gate / @Check            human approval gates and pre-flight checks
+├── WorkflowRuntime           executes stages, chains outputs, compensates on failure
+├── JdbcWorkflowRunStore      durable state — gates survive JVM restarts
+└── WorkflowHandle            async execution, status polling, awaitCompletion()
+
+sagacity-spring-boot-starter  auto-configuration + REST endpoints
 sagacity-examples             runnable demos, not published
 sagacity-coverage             aggregate JaCoCo report, not published
 ```
@@ -32,6 +39,11 @@ The dependency direction is strict and deliberate: `core` knows nothing about
 Spring. Its only third-party surface is `javax.sql.DataSource`. That is what
 makes a LangChain4j adapter possible later without touching the journal or the
 compensation runner.
+
+`sagacity-workflows` is an optional module. Most Spring AI agents only need
+`sagacity-spring-boot-starter` — they annotate their existing `@Tool` methods
+and run inside a saga. Workflows are for agents that need an explicit declared
+sequence with ordered stages.
 
 ## The hot path
 

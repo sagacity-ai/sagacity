@@ -1,5 +1,5 @@
 site_name: Sagacity
-site_description: The reliability layer for Spring AI agents — declarative workflows, automatic compensation, human approval gates, and a tamper-evident audit trail
+site_description: Production safety for Spring AI agents — approval gates, automatic compensation, and a tamper-evident audit trail. One dependency, no new infrastructure.
 site_url: https://sagacity-ai.github.io/sagacity/
 repo_url: https://github.com/sagacity-ai/sagacity
 repo_name: sagacity-ai/sagacity
@@ -72,11 +72,11 @@ nav:
   - Home: index.md
   - Getting started: getting-started.md
   - Guides:
-      - Compensating a failed saga: guides/compensation.md
+      - Compensating a failed agent run: guides/compensation.md
       - Approval gates for irreversible tools: guides/approval-gates.md
-      - Verifiable workflows: guides/workflows.md
       - Audit export and verification: guides/audit-and-verification.md
       - Production checklist: guides/production-checklist.md
+      - Verifiable workflows (advanced): guides/workflows.md
   - Reference:
       - Annotations: reference/annotations.md
       - Sagacity API: reference/api.md
@@ -84,7 +84,7 @@ nav:
       - Configuration: reference/configuration.md
       - Journal schema: reference/journal-schema.md
   - Concepts:
-      - The saga model: concepts/saga-model.md
+      - The compensation model: concepts/saga-model.md
       - Architecture: concepts/architecture.md
       - The hash chain: concepts/hash-chain.md
       - Threat model: concepts/threat-model.md
