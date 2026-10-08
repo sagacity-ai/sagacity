@@ -3,6 +3,7 @@ package dev.sagacity.springai;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import dev.sagacity.core.Reversibility;
@@ -14,328 +15,260 @@ import dev.sagacity.core.audit.AuditExporter;
 import dev.sagacity.core.compensation.CompensationRegistry;
 import dev.sagacity.core.compensation.CompensationReport;
 import dev.sagacity.core.compensation.CompensationRunner;
+import dev.sagacity.core.journal.AuditStore;
 import dev.sagacity.core.journal.HashChain;
-import dev.sagacity.core.journal.InMemorySideEffectJournal;
+import dev.sagacity.core.journal.InMemoryAuditStore;
 import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.journal.SideEffectJournal;
 import dev.sagacity.core.retry.RetryPolicy;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 
 /**
- * Entry point. Wrap tool beans once, then run agent work inside saga scopes:
+ * Entry point for Sagacity governance. Wrap tool beans once, then run agent
+ * work inside saga scopes:
  *
  * <pre>{@code
  * Sagacity sagacity = Sagacity.create();
  * ToolCallback[] tools = sagacity.wrap(new RefundTools());
  *
  * SagaResult<ChatResponse> result = sagacity.saga("refund-order-123",
- *         () -> chatClient.prompt().user("...").toolCallbacks(tools).call().chatResponse());
+ *     () -> chatClient.prompt().user("...").toolCallbacks(tools).call().chatResponse());
  * }</pre>
  */
 public final class Sagacity {
 
-	private final SideEffectJournal journal;
+    private final AuditStore auditStore;
 
-	private final ApprovalStore approvalStore;
+    private final ApprovalStore approvalStore;
 
-	private final CompensationRegistry registry = new CompensationRegistry();
+    private final CompensationRegistry registry = new CompensationRegistry();
 
-	private final CompensationRunner runner;
+    private final CompensationRunner runner;
 
-	private final AuditExporter auditExporter;
+    private final AuditExporter auditExporter;
 
-	/** Raw, undecorated callbacks by tool name — populated by {@link #wrap}. */
-	private final java.util.Map<String, ToolCallback> delegates = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<String, ToolCallback> delegates =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
-	/** Backoff initial delay in ms — used when building per-tool RetryPolicy objects. */
-	private final long retryInitialDelayMs;
+    private final long retryInitialDelayMs;
 
-	/** Backoff multiplier — used when building per-tool RetryPolicy objects. */
-	private final double retryBackoffMultiplier;
+    private final double retryBackoffMultiplier;
 
-	private Sagacity(SideEffectJournal journal, ApprovalStore approvalStore,
-			long retryInitialDelayMs, double retryBackoffMultiplier) {
-		this.journal = journal;
-		this.approvalStore = approvalStore;
-		this.runner = new CompensationRunner(journal, this.registry);
-		this.auditExporter = new AuditExporter(journal);
-		this.retryInitialDelayMs = retryInitialDelayMs;
-		this.retryBackoffMultiplier = retryBackoffMultiplier;
-	}
+    private Sagacity(AuditStore auditStore, ApprovalStore approvalStore,
+            long retryInitialDelayMs, double retryBackoffMultiplier) {
+        this.auditStore = auditStore;
+        this.approvalStore = approvalStore;
+        this.runner = new CompensationRunner(auditStore, this.registry);
+        this.auditExporter = new AuditExporter(auditStore);
+        this.retryInitialDelayMs = retryInitialDelayMs;
+        this.retryBackoffMultiplier = retryBackoffMultiplier;
+    }
 
-	/** In-memory journal + approval store — tests and demos. */
-	public static Sagacity create() {
-		return new Sagacity(new InMemorySideEffectJournal(), new InMemoryApprovalStore(), 100L, 2.0);
-	}
+    /** In-memory store — for tests and demos only. */
+    public static Sagacity create() {
+        return new Sagacity(new InMemoryAuditStore(), new InMemoryApprovalStore(), 100L, 2.0);
+    }
 
-	public static Sagacity create(SideEffectJournal journal) {
-		return new Sagacity(journal, new InMemoryApprovalStore(), 100L, 2.0);
-	}
+    public static Sagacity create(AuditStore auditStore) {
+        return new Sagacity(auditStore, new InMemoryApprovalStore(), 100L, 2.0);
+    }
 
-	public static Sagacity create(SideEffectJournal journal, ApprovalStore approvalStore) {
-		return new Sagacity(journal, approvalStore, 100L, 2.0);
-	}
+    public static Sagacity create(AuditStore auditStore, ApprovalStore approvalStore) {
+        return new Sagacity(auditStore, approvalStore, 100L, 2.0);
+    }
 
-	/**
-	 * Creates a Sagacity instance with custom retry backoff configuration.
-	 * Per-tool retry counts and exception types are still declared via {@code @Compensable}.
-	 *
-	 * @param journal              the journal implementation
-	 * @param approvalStore        the approval store implementation
-	 * @param retryInitialDelayMs  initial backoff delay in ms (default 100)
-	 * @param retryBackoffMultiplier exponential multiplier per retry (default 2.0)
-	 */
-	public static Sagacity create(SideEffectJournal journal, ApprovalStore approvalStore,
-			long retryInitialDelayMs, double retryBackoffMultiplier) {
-		return new Sagacity(journal, approvalStore, retryInitialDelayMs, retryBackoffMultiplier);
-	}
+    public static Sagacity create(AuditStore auditStore, ApprovalStore approvalStore,
+            long retryInitialDelayMs, double retryBackoffMultiplier) {
+        return new Sagacity(auditStore, approvalStore, retryInitialDelayMs, retryBackoffMultiplier);
+    }
 
-	/**
-	 * Builds Spring AI tool callbacks from {@code @Tool}-annotated beans, registers
-	 * their {@code @Compensable} declarations (failing fast on broken ones), and
-	 * returns every callback wrapped with journaling + approval gates.
-	 */
-	public ToolCallback[] wrap(Object... toolBeans) {
-		List<ToolCallback> wrapped = new ArrayList<>();
-		for (Object toolBean : toolBeans) {
-			CompensationScanner.scan(toolBean, this.registry);
-			ToolCallback[] callbacks = MethodToolCallbackProvider.builder()
-				.toolObjects(toolBean)
-				.build()
-				.getToolCallbacks();
-			for (ToolCallback callback : callbacks) {
-				String toolName = callback.getToolDefinition().name();
-				Reversibility rev = CompensationScanner.reversibilityFor(toolBean, toolName, this.registry);
-				RetryPolicy retryPolicy = CompensationScanner.retryPolicyFor(
-						toolBean, toolName, this.retryInitialDelayMs, this.retryBackoffMultiplier);
-				this.delegates.put(toolName, callback);
-				wrapped.add(new SagacityToolCallback(callback, this.journal, this.approvalStore, rev, retryPolicy));
-			}
-		}
-		return wrapped.toArray(ToolCallback[]::new);
-	}
+    /**
+     * Wraps tool beans with journaling, approval gates, and retry logic.
+     */
+    public ToolCallback[] wrap(Object... toolBeans) {
+        List<ToolCallback> wrapped = new ArrayList<>();
+        for (Object toolBean : toolBeans) {
+            CompensationScanner.scan(toolBean, this.registry);
+            ToolCallback[] callbacks = MethodToolCallbackProvider.builder()
+                    .toolObjects(toolBean)
+                    .build()
+                    .getToolCallbacks();
+            for (ToolCallback callback : callbacks) {
+                String toolName = callback.getToolDefinition().name();
+                Reversibility rev = CompensationScanner.reversibilityFor(toolBean, toolName, this.registry);
+                RetryPolicy retryPolicy = CompensationScanner.retryPolicyFor(
+                        toolBean, toolName, this.retryInitialDelayMs, this.retryBackoffMultiplier);
+                this.delegates.put(toolName, callback);
+                wrapped.add(new SagacityToolCallback(callback, this.auditStore,
+                        this.approvalStore, rev, retryPolicy));
+            }
+        }
+        return wrapped.toArray(ToolCallback[]::new);
+    }
 
-	/**
-	 * Runs agent work in a saga scope. If the work throws, or any wrapped tool
-	 * failed (even when the failure was swallowed and fed back to the model as an
-	 * error message), compensations run in reverse order of execution. If an
-	 * IRREVERSIBLE tool is encountered, the saga returns with status
-	 * AWAITING_APPROVAL.
-	 */
-	public <T> SagaResult<T> saga(String sagaId, Supplier<T> work) {
-		SagaScope.open(sagaId);
-		try {
-			T value;
-			try {
-				value = work.get();
-			}
-			catch (RuntimeException ex) {
-				SagaScope.markFailed(ex);
-				CompensationReport report = this.runner.compensate(sagaId);
-				return SagaResult.compensated(sagaId, report, SagaScope.failure());
-			}
-			if (SagaScope.failure() != null) {
-				CompensationReport report = this.runner.compensate(sagaId);
-				return SagaResult.compensated(sagaId, report, SagaScope.failure());
-			}
-			if (SagaScope.isAwaitingApproval()) {
-				return SagaResult.awaitingApproval(sagaId, SagaScope.awaitingToolName());
-			}
-			return SagaResult.completed(sagaId, value);
-		}
-		finally {
-			SagaScope.close();
-		}
-	}
+    /**
+     * Runs agent work in a saga scope with compensation on failure.
+     */
+    public <T> SagaResult<T> saga(String sagaId, Supplier<T> work) {
+        SagaScope.open(sagaId);
+        try {
+            T value;
+            try {
+                value = work.get();
+            } catch (RuntimeException ex) {
+                SagaScope.markFailed(ex);
+                CompensationReport report = this.runner.compensate(sagaId);
+                return SagaResult.compensated(sagaId, report, SagaScope.failure());
+            }
+            if (SagaScope.failure() != null) {
+                CompensationReport report = this.runner.compensate(sagaId);
+                return SagaResult.compensated(sagaId, report, SagaScope.failure());
+            }
+            if (SagaScope.isAwaitingApproval()) {
+                return SagaResult.awaitingApproval(sagaId, SagaScope.awaitingToolName());
+            }
+            return SagaResult.completed(sagaId, value);
+        } finally {
+            SagaScope.close();
+        }
+    }
 
-	public SagaResult<Void> saga(String sagaId, Runnable work) {
-		return saga(sagaId, () -> {
-			work.run();
-			return null;
-		});
-	}
+    public SagaResult<Void> saga(String sagaId, Runnable work) {
+        return saga(sagaId, () -> {
+            work.run();
+            return null;
+        });
+    }
 
-	/**
-	 * Approve a pending IRREVERSIBLE tool execution. Journals the approval with the
-	 * approver's identity. Does NOT remove the approval from the store — that
-	 * happens in {@link #resumeSaga} after payload hash verification.
-	 */
-	public ApprovalDecision approve(String sagaId, long journalSeq, String approverIdentity) {
-		this.journal.append(sagaId, "approval-gate", Phase.APPROVED, "seq=" + journalSeq,
-				"approver=" + approverIdentity);
-		// Intentionally NOT removing from store here — resumeSaga verifies the
-		// payload hash and removes the request after successful verification.
-		return new ApprovalDecision(sagaId, journalSeq, true, approverIdentity, Instant.now());
-	}
+    /**
+     * Approve a pending IRREVERSIBLE tool execution.
+     */
+    public ApprovalDecision approve(String sagaId, long journalSeq, String approverIdentity) {
+        this.auditStore.append(sagaId, "approval-gate",
+                new Phase.Approved(), "seq=" + journalSeq + "|approver=" + approverIdentity);
+        return new ApprovalDecision(sagaId, journalSeq, true, approverIdentity, Instant.now());
+    }
 
-	/**
-	 * Reject a pending IRREVERSIBLE tool execution. Triggers compensation of prior
-	 * steps.
-	 */
-	public ApprovalDecision reject(String sagaId, long journalSeq, String approverIdentity) {
-		this.journal.append(sagaId, "approval-gate", Phase.REJECTED, "seq=" + journalSeq,
-				"approver=" + approverIdentity);
-		this.approvalStore.remove(sagaId, journalSeq);
-		this.runner.compensate(sagaId);
-		return new ApprovalDecision(sagaId, journalSeq, false, approverIdentity, Instant.now());
-	}
+    /**
+     * Reject a pending IRREVERSIBLE tool execution and trigger compensation.
+     */
+    public ApprovalDecision reject(String sagaId, long journalSeq, String approverIdentity) {
+        this.auditStore.append(sagaId, "approval-gate",
+                new Phase.Rejected("rejected by " + approverIdentity),
+                "seq=" + journalSeq);
+        this.approvalStore.remove(sagaId, journalSeq);
+        this.runner.compensate(sagaId);
+        return new ApprovalDecision(sagaId, journalSeq, false, approverIdentity, Instant.now());
+    }
 
-	/**
-	 * Resume a saga after a human has approved an IRREVERSIBLE tool, executing it
-	 * with the supplied live payload. Performs stale-approval detection: if the
-	 * live payload's SHA-256 hash does not match the hash recorded when the approval
-	 * was originally requested, execution is rejected — even though a valid approval
-	 * exists — and compensation runs.
-	 *
-	 * <p>This prevents a class of attack where the model re-plans between the time
-	 * a human approves and the time the tool runs, substituting a different
-	 * (potentially more dangerous) payload for the one the approver saw.
-	 *
-	 * <p><strong>Pass the unwrapped delegate callback</strong>, not the Sagacity-wrapped
-	 * one, to avoid re-triggering the approval gate.
-	 *
-	 * @param sagaId           the saga to resume
-	 * @param journalSeq       the journal sequence of the AWAITING_APPROVAL entry
-	 * @param livePayload      the actual tool input that will be executed
-	 * @param delegateCallback the raw (unwrapped) ToolCallback to execute
-	 * @return SagaResult reflecting COMPLETED or COMPENSATED
-	 */
-	public SagaResult<String> resumeSaga(String sagaId, long journalSeq,
-			String livePayload, ToolCallback delegateCallback) {
+    /**
+     * Resume a saga after human approval, executing the tool with payload verification.
+     */
+    public SagaResult<String> resumeSaga(String sagaId, long journalSeq,
+            String livePayload, ToolCallback delegateCallback) {
 
-		// Locate the original approval request (still in store until we remove it)
-		var maybeRequest = this.approvalStore.find(sagaId, journalSeq);
-		if (maybeRequest.isEmpty()) {
-			throw new IllegalStateException(
-					"No pending approval found for saga=" + sagaId + " seq=" + journalSeq);
-		}
+        var maybeRequest = this.approvalStore.find(sagaId, journalSeq);
+        if (maybeRequest.isEmpty()) {
+            throw new IllegalStateException(
+                    "No pending approval found for saga=" + sagaId + " seq=" + journalSeq);
+        }
 
-		ApprovalRequest request = maybeRequest.get();
+        ApprovalRequest request = maybeRequest.get();
 
-		// A pending request is not an approval. approve() leaves the request in the
-		// store so this method can verify the payload, which means store state alone
-		// cannot distinguish "approved" from "never looked at". Require the journaled
-		// APPROVED decision before going any further.
-		if (approverFor(sagaId, journalSeq).isEmpty()) {
-			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
-					"no approval recorded for this saga/seq",
-					"Tool execution refused: no human approval recorded for saga=" + sagaId
-							+ " seq=" + journalSeq);
-		}
+        if (approverFor(sagaId, journalSeq).isEmpty()) {
+            return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+                    "no approval recorded for this saga/seq",
+                    "Tool execution refused: no human approval recorded");
+        }
 
-		// Stale-approval check — hash the live payload and compare. An absent hash is
-		// treated as a failed check, not a skipped one: a request that never recorded
-		// what was approved cannot be shown to match.
-		String liveHash = HashChain.sha256(livePayload);
-		if (request.inputHash().isEmpty()) {
-			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
-					"approval carries no payload hash — cannot verify",
-					"Approval rejected: request has no recorded payload hash to verify against");
-		}
-		if (!liveHash.equals(request.inputHash())) {
-			// Payload has changed since approval was granted — reject and compensate
-			return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
-					"stale-approval: payload changed since approval was granted",
-					"Stale approval rejected: payload changed since approval was granted");
-		}
+        String liveHash = HashChain.sha256(livePayload);
+        if (request.inputHash().isEmpty()) {
+            return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+                    "approval carries no payload hash — cannot verify",
+                    "Approval rejected: no recorded payload hash to verify against");
+        }
+        if (!liveHash.equals(request.inputHash())) {
+            return rejectAndCompensate(sagaId, journalSeq, request.toolName(),
+                    "stale-approval: payload changed since approval was granted",
+                    "Stale approval rejected: payload changed since approval was granted");
+        }
 
-		// Payload matches — safe to execute
-		this.approvalStore.remove(sagaId, journalSeq);
-		this.journal.append(sagaId, request.toolName(), Phase.INTENT, livePayload, "");
-		try {
-			String result = delegateCallback.call(livePayload);
-			this.journal.append(sagaId, request.toolName(), Phase.EXECUTED, livePayload,
-					result != null ? result : "");
-			return SagaResult.completed(sagaId, result);
-		}
-		catch (RuntimeException ex) {
-			Throwable rootCause = ex.getCause() != null ? ex.getCause() : ex;
-			String detail = rootCause.getMessage() != null ? rootCause.getMessage()
-					: rootCause.getClass().getSimpleName();
-			this.journal.append(sagaId, request.toolName(), Phase.FAILED, livePayload, detail);
-			CompensationReport report = this.runner.compensate(sagaId);
-			return SagaResult.compensated(sagaId, report, rootCause);
-		}
-	}
+        this.approvalStore.remove(sagaId, journalSeq);
+        this.auditStore.append(sagaId, request.toolName(), new Phase.Intent(), livePayload);
+        try {
+            String result = delegateCallback.call(livePayload);
+            this.auditStore.append(sagaId, request.toolName(),
+                    new Phase.Executed(result != null ? result : ""), livePayload);
+            return SagaResult.completed(sagaId, result);
+        } catch (RuntimeException ex) {
+            Throwable rootCause = ex.getCause() != null ? ex.getCause() : ex;
+            String detail = rootCause.getMessage() != null
+                    ? rootCause.getMessage() : rootCause.getClass().getSimpleName();
+            this.auditStore.append(sagaId, request.toolName(), new Phase.Failed(detail), livePayload);
+            CompensationReport report = this.runner.compensate(sagaId);
+            return SagaResult.compensated(sagaId, report, rootCause);
+        }
+    }
 
-	/**
-	 * Resume an approved tool using the callback registered by {@link #wrap} for
-	 * the tool named in the approval request. Same verification as the
-	 * four-argument form — this overload only saves the caller from holding on to
-	 * the undecorated callback, which is what lets the REST layer resume at all.
-	 *
-	 * @throws IllegalStateException if no approval is pending, or if the tool was
-	 *                               never registered through {@link #wrap}
-	 */
-	public SagaResult<String> resumeSaga(String sagaId, long journalSeq, String livePayload) {
-		ApprovalRequest request = this.approvalStore.find(sagaId, journalSeq)
-			.orElseThrow(() -> new IllegalStateException(
-					"No pending approval found for saga=" + sagaId + " seq=" + journalSeq));
+    public SagaResult<String> resumeSaga(String sagaId, long journalSeq, String livePayload) {
+        ApprovalRequest request = this.approvalStore.find(sagaId, journalSeq)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No pending approval found for saga=" + sagaId + " seq=" + journalSeq));
+        ToolCallback delegate = this.delegates.get(request.toolName());
+        if (delegate == null) {
+            throw new IllegalStateException("Tool '" + request.toolName()
+                    + "' is not registered — was it passed to wrap()?");
+        }
+        return resumeSaga(sagaId, journalSeq, livePayload, delegate);
+    }
 
-		ToolCallback delegate = this.delegates.get(request.toolName());
-		if (delegate == null) {
-			throw new IllegalStateException("Tool '" + request.toolName()
-					+ "' is not registered with this Sagacity instance — was it passed to wrap()?");
-		}
-		return resumeSaga(sagaId, journalSeq, livePayload, delegate);
-	}
+    private SagaResult<String> rejectAndCompensate(String sagaId, long journalSeq,
+            String toolName, String journalDetail, String failureMessage) {
+        this.auditStore.append(sagaId, toolName,
+                new Phase.Rejected(journalDetail), "seq=" + journalSeq);
+        this.approvalStore.remove(sagaId, journalSeq);
+        CompensationReport report = this.runner.compensate(sagaId);
+        return SagaResult.compensated(sagaId, report, new IllegalStateException(failureMessage));
+    }
 
-	/**
-	 * Journals a REJECTED decision, drops the pending request, and compensates the
-	 * saga exactly once. Compensation is not idempotent — {@link CompensationRunner}
-	 * re-runs every EXECUTED effect it finds — so the report must come from a single
-	 * call, never from a second one made while building the result.
-	 */
-	private SagaResult<String> rejectAndCompensate(String sagaId, long journalSeq, String toolName,
-			String journalDetail, String failureMessage) {
-		this.journal.append(sagaId, toolName, Phase.REJECTED, "seq=" + journalSeq, journalDetail);
-		this.approvalStore.remove(sagaId, journalSeq);
-		CompensationReport report = this.runner.compensate(sagaId);
-		return SagaResult.compensated(sagaId, report, new IllegalStateException(failureMessage));
-	}
+    /**
+     * Finds the approver identity from the journal using pattern matching on the sealed Phase.
+     */
+    private Optional<String> approverFor(String sagaId, long journalSeq) {
+        String seqMarker = "seq=" + journalSeq;
+        return this.auditStore.findBySagaId(sagaId, Phase.Approved.class)
+                .stream()
+                .filter(entry -> entry.input().contains(seqMarker))
+                .map(entry -> {
+                    // input format: "seq=N|approver=identity"
+                    String input = entry.input();
+                    int idx = input.indexOf("|approver=");
+                    return idx >= 0 ? input.substring(idx + 10) : "unknown";
+                })
+                .findFirst();
+    }
 
-	/**
-	 * Returns the identity that approved this saga/seq, or empty if no APPROVED
-	 * decision was journaled. Reads the journal rather than a side table so the
-	 * decision that gates execution is the same one covered by the hash chain.
-	 */
-	private java.util.Optional<String> approverFor(String sagaId, long journalSeq) {
-		String seqMarker = "seq=" + journalSeq;
-		return this.journal.entries(sagaId)
-			.stream()
-			.filter(entry -> entry.phase() == Phase.APPROVED && seqMarker.equals(entry.input()))
-			.map(entry -> entry.payload().startsWith("approver=")
-					? entry.payload().substring("approver=".length()) : entry.payload())
-			.findFirst();
-	}
+    public List<ApprovalRequest> pendingApprovals() {
+        return this.approvalStore.pendingRequests();
+    }
 
-	/** Get all pending approval requests. */
-	public List<ApprovalRequest> pendingApprovals() {
-		return this.approvalStore.pendingRequests();
-	}
+    public List<ApprovalRequest> pendingApprovals(String sagaId) {
+        return this.approvalStore.pendingRequests(sagaId);
+    }
 
-	/** Get pending approval requests for a specific saga. */
-	public List<ApprovalRequest> pendingApprovals(String sagaId) {
-		return this.approvalStore.pendingRequests(sagaId);
-	}
+    public String exportAuditLog(String sagaId) {
+        return this.auditExporter.exportJsonLines(sagaId);
+    }
 
-	/** Export journal as JSON Lines for audit compliance. */
-	public String exportAuditLog(String sagaId) {
-		return this.auditExporter.exportJsonLines(sagaId);
-	}
+    public AuditExporter.VerificationResult verifyJournal(String sagaId) {
+        return this.auditExporter.verify(sagaId);
+    }
 
-	/** Verify journal integrity (tamper detection). */
-	public AuditExporter.VerificationResult verifyJournal(String sagaId) {
-		return this.auditExporter.verify(sagaId);
-	}
+    public AuditStore auditStore() {
+        return this.auditStore;
+    }
 
-	public SideEffectJournal journal() {
-		return this.journal;
-	}
-
-	public ApprovalStore approvalStore() {
-		return this.approvalStore;
-	}
-
+    public ApprovalStore approvalStore() {
+        return this.approvalStore;
+    }
 }

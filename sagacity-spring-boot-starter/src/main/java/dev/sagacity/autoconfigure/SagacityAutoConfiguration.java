@@ -5,10 +5,11 @@ import javax.sql.DataSource;
 import dev.sagacity.core.approval.ApprovalStore;
 import dev.sagacity.core.approval.InMemoryApprovalStore;
 import dev.sagacity.core.approval.PostgresApprovalStore;
-import dev.sagacity.core.journal.CloudSideEffectJournal;
-import dev.sagacity.core.journal.InMemorySideEffectJournal;
-import dev.sagacity.core.journal.JdbcSideEffectJournal;
-import dev.sagacity.core.journal.SideEffectJournal;
+import dev.sagacity.core.journal.AuditStore;
+import dev.sagacity.core.journal.CloudAuditStore;
+import dev.sagacity.core.journal.InMemoryAuditStore;
+import dev.sagacity.core.journal.JdbcAuditStore;
+import dev.sagacity.core.journal.Slf4jAuditStore;
 import dev.sagacity.springai.Sagacity;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -21,138 +22,135 @@ import org.springframework.context.annotation.Bean;
 /**
  * Auto-configuration for Sagacity.
  *
- * <h2>Journal selection — priority order</h2>
+ * <h2>AuditStore selection — priority order</h2>
  * <ol>
- *   <li>User-declared {@code SideEffectJournal} bean ({@code @ConditionalOnMissingBean})
- *   <li>{@code sagacity.cloud.api-key} is set → {@link CloudSideEffectJournal}
- *   <li>{@code DataSource} bean is present → {@link JdbcSideEffectJournal}
- *   <li>Fallback → {@link InMemorySideEffectJournal} (dev/testing only)
+ *   <li>User-declared {@code AuditStore} bean ({@code @ConditionalOnMissingBean})
+ *   <li>{@code sagacity.cloud.api-key} set → {@link CloudAuditStore}
+ *   <li>{@code sagacity.audit.store=slf4j} → {@link Slf4jAuditStore} (zero-infra dev mode)
+ *   <li>{@code DataSource} bean present → {@link JdbcAuditStore}
+ *   <li>Fallback → {@link InMemoryAuditStore} (dev/testing only)
  * </ol>
- *
- * <h2>ApprovalStore selection</h2>
- * <p>The approval store always prefers Postgres when a {@code DataSource} is
- * present, regardless of which journal is selected. An in-memory store loses
- * pending approvals on restart — stranding any in-flight irreversible tool.
  */
 @AutoConfiguration
 @EnableConfigurationProperties(SagacityProperties.class)
 @ConditionalOnProperty(prefix = "sagacity", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SagacityAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public SideEffectJournal sagacityJournal(
-			org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
-			SagacityProperties properties) {
+    @Bean
+    @ConditionalOnMissingBean
+    public AuditStore sagacityAuditStore(
+            org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
+            SagacityProperties properties) {
 
-		// Priority 1: Cloud journal when api-key is configured
-		SagacityProperties.Cloud cloud = properties.getCloud();
-		if (cloud.isConfigured()) {
-			String baseUrl = cloud.getBaseUrl();
-			return (baseUrl != null && !baseUrl.isBlank())
-					? new CloudSideEffectJournal(cloud.getApiKey(), baseUrl)
-					: new CloudSideEffectJournal(cloud.getApiKey());
-		}
+        // Priority 1: Cloud store when api-key is configured
+        SagacityProperties.Cloud cloud = properties.getCloud();
+        if (cloud.isConfigured()) {
+            String baseUrl = cloud.getBaseUrl();
+            return (baseUrl != null && !baseUrl.isBlank())
+                    ? new CloudAuditStore(cloud.getApiKey(), baseUrl)
+                    : new CloudAuditStore(cloud.getApiKey());
+        }
 
-		// Priority 2: JDBC journal — works with PostgreSQL, MySQL, MariaDB, Oracle, H2
-		DataSource dataSource = dataSourceProvider.getIfAvailable();
-		if (dataSource != null) {
-			if (properties.isSchemaInit()) {
-				initSchema(dataSource);
-			}
-			return new JdbcSideEffectJournal(dataSource);
-		}
+        // Priority 2: Explicit Slf4j store (zero-infra dev mode)
+        if ("slf4j".equalsIgnoreCase(properties.getAuditStore())) {
+            return new Slf4jAuditStore();
+        }
 
-		// Priority 3: In-memory fallback (dev/test only)
-		return new InMemorySideEffectJournal();
-	}
+        // Priority 3: JDBC store
+        DataSource dataSource = dataSourceProvider.getIfAvailable();
+        if (dataSource != null) {
+            if (properties.isSchemaInit()) {
+                initSchema(dataSource);
+            }
+            return new JdbcAuditStore(dataSource);
+        }
 
-	@Bean
-	@ConditionalOnMissingBean
-	public ApprovalStore sagacityApprovalStore(
-			org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
-			SagacityProperties properties) {
-		DataSource dataSource = dataSourceProvider.getIfAvailable();
-		if (dataSource == null) {
-			return new InMemoryApprovalStore();
-		}
-		if (properties.isSchemaInit()) {
-			initSchema(dataSource);
-		}
-		return new PostgresApprovalStore(dataSource);
-	}
+        // Priority 4: In-memory fallback
+        return new InMemoryAuditStore();
+    }
 
-	@Bean
-	@ConditionalOnMissingBean
-	public Sagacity sagacity(SideEffectJournal journal, ApprovalStore approvalStore,
-			SagacityProperties properties) {
-		SagacityProperties.Retry retry = properties.getRetry();
-		return Sagacity.create(journal, approvalStore,
-				retry.getInitialDelayMs(), retry.getBackoffMultiplier());
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    public ApprovalStore sagacityApprovalStore(
+            org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
+            SagacityProperties properties) {
+        DataSource dataSource = dataSourceProvider.getIfAvailable();
+        if (dataSource == null) {
+            return new InMemoryApprovalStore();
+        }
+        if (properties.isSchemaInit()) {
+            initSchema(dataSource);
+        }
+        return new PostgresApprovalStore(dataSource);
+    }
 
-	/**
-	 * Registers the approval REST endpoints.
-	 *
-	 * <p>The controller must be declared here rather than relying on its own
-	 * {@code @RestController} stereotype: {@code dev.sagacity.autoconfigure} is
-	 * not on a consuming application's component-scan path, so nothing would
-	 * ever instantiate it and every documented {@code /sagacity/**} endpoint
-	 * would 404.
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-	@ConditionalOnProperty(prefix = "sagacity", name = "approval-endpoints-enabled",
-			havingValue = "true", matchIfMissing = true)
-	public SagacityApprovalController sagacityApprovalController(Sagacity sagacity) {
-		return new SagacityApprovalController(sagacity);
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    public Sagacity sagacity(AuditStore auditStore, ApprovalStore approvalStore,
+            SagacityProperties properties) {
+        SagacityProperties.Retry retry = properties.getRetry();
+        return Sagacity.create(auditStore, approvalStore,
+                retry.getInitialDelayMs(), retry.getBackoffMultiplier());
+    }
 
-	/**
-	 * Embedded UI served at {@code /sagacity/ui}.
-	 * Enabled by default when approval endpoints are enabled.
-	 * Disable with {@code sagacity.ui-enabled=false}.
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-	@ConditionalOnProperty(prefix = "sagacity", name = "ui-enabled",
-			havingValue = "true", matchIfMissing = true)
-	public SagacityUiController sagacityUiController() {
-		return new SagacityUiController();
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnProperty(prefix = "sagacity", name = "approval-endpoints-enabled",
+            havingValue = "true", matchIfMissing = true)
+    public SagacityApprovalController sagacityApprovalController(Sagacity sagacity) {
+        return new SagacityApprovalController(sagacity);
+    }
 
-	private void initSchema(DataSource dataSource) {
-		try (var conn = dataSource.getConnection(); var stmt = conn.createStatement()) {
-			stmt.execute("""
-				CREATE TABLE IF NOT EXISTS side_effect_journal (
-				    saga_id     TEXT        NOT NULL,
-				    seq         BIGINT      NOT NULL,
-				    tool_name   TEXT        NOT NULL,
-				    phase       TEXT        NOT NULL,
-				    input       TEXT        NOT NULL DEFAULT '',
-				    payload     TEXT        NOT NULL DEFAULT '',
-				    timestamp   TIMESTAMP   NOT NULL,
-				    hash        CHAR(64)    NOT NULL,
-				    PRIMARY KEY (saga_id, seq)
-				)
-			""");
-			stmt.execute("CREATE INDEX IF NOT EXISTS idx_journal_saga_id ON side_effect_journal (saga_id)");
-			stmt.execute("""
-				CREATE TABLE IF NOT EXISTS sagacity_approval_request (
-				    saga_id      TEXT        NOT NULL,
-				    journal_seq  BIGINT      NOT NULL,
-				    tool_name    TEXT        NOT NULL,
-				    input        TEXT        NOT NULL DEFAULT '',
-				    input_hash   CHAR(64)    NOT NULL,
-				    created_at   TIMESTAMP   NOT NULL,
-				    PRIMARY KEY (saga_id, journal_seq)
-				)
-			""");
-			stmt.execute("CREATE INDEX IF NOT EXISTS idx_approval_saga_id ON sagacity_approval_request (saga_id)");
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to initialize Sagacity schema", e);
-		}
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnProperty(prefix = "sagacity", name = "ui-enabled",
+            havingValue = "true", matchIfMissing = true)
+    public SagacityUiController sagacityUiController() {
+        return new SagacityUiController();
+    }
+
+    private void initSchema(DataSource dataSource) {
+        try (var conn = dataSource.getConnection(); var stmt = conn.createStatement()) {
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sagacity_journal (
+                    saga_id     TEXT      NOT NULL,
+                    seq         BIGINT    NOT NULL,
+                    tool_name   TEXT      NOT NULL,
+                    phase       TEXT      NOT NULL,
+                    phase_data  TEXT      NOT NULL DEFAULT '{}',
+                    input       TEXT      NOT NULL DEFAULT '',
+                    recorded_at TIMESTAMP NOT NULL,
+                    hash        CHAR(64)  NOT NULL,
+                    PRIMARY KEY (saga_id, seq)
+                )
+                """);
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sagacity_journal_saga_id
+                    ON sagacity_journal (saga_id)
+                """);
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sagacity_journal_phase
+                    ON sagacity_journal (saga_id, phase)
+                """);
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sagacity_approval_request (
+                    saga_id      TEXT      NOT NULL,
+                    journal_seq  BIGINT    NOT NULL,
+                    tool_name    TEXT      NOT NULL,
+                    input        TEXT      NOT NULL DEFAULT '',
+                    input_hash   CHAR(64)  NOT NULL,
+                    created_at   TIMESTAMP NOT NULL,
+                    PRIMARY KEY (saga_id, journal_seq)
+                )
+                """);
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sagacity_approval_saga_id
+                    ON sagacity_approval_request (saga_id)
+                """);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize Sagacity schema", e);
+        }
+    }
 }

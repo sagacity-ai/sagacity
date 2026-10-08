@@ -4,161 +4,209 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class HashChainTest {
 
-	@Test
-	void computeHash_isDeterministic() {
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "saga-1", 1, "tool",
-				Phase.INTENT, "input", "payload", Instant.parse("2026-07-21T10:00:00Z"));
-		String hash2 = HashChain.computeHash(HashChain.zeroHash(), "saga-1", 1, "tool",
-				Phase.INTENT, "input", "payload", Instant.parse("2026-07-21T10:00:00Z"));
-		assertThat(hash1).isEqualTo(hash2);
-		assertThat(hash1).hasSize(64); // SHA-256 hex = 64 chars
-	}
+    @Nested
+    @DisplayName("determinism and sensitivity")
+    class DeterminismTests {
 
-	@Test
-	void computeHash_changesWithDifferentInput() {
-		Instant now = Instant.now();
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "saga-1", 1, "tool",
-				Phase.INTENT, "input-A", "", now);
-		String hash2 = HashChain.computeHash(HashChain.zeroHash(), "saga-1", 1, "tool",
-				Phase.INTENT, "input-B", "", now);
-		assertThat(hash1).isNotEqualTo(hash2);
-	}
+        @Test
+        @DisplayName("same inputs produce the same hash")
+        void computeHashIsDeterministic() {
+            Instant t = Instant.parse("2026-07-21T10:00:00Z");
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "saga-1", 1, "tool", new Phase.Intent(), "input", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "saga-1", 1, "tool", new Phase.Intent(), "input", t);
 
-	@Test
-	void computeHash_changesWithDifferentPreviousHash() {
-		Instant now = Instant.now();
-		String hash1 = HashChain.computeHash("aaa", "saga-1", 1, "tool",
-				Phase.INTENT, "input", "", now);
-		String hash2 = HashChain.computeHash("bbb", "saga-1", 1, "tool",
-				Phase.INTENT, "input", "", now);
-		assertThat(hash1).isNotEqualTo(hash2);
-	}
+            assertThat(hash1).isEqualTo(hash2);
+            assertThat(hash1).hasSize(64);
+        }
 
-	@Test
-	void verify_validChain_returnsTrue() {
-		Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
-		Instant t2 = Instant.parse("2026-07-21T10:00:01Z");
+        @Test
+        @DisplayName("different input changes the hash")
+        void hashChangesWithDifferentInput() {
+            Instant t = Instant.now();
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "saga-1", 1, "tool", new Phase.Intent(), "input-A", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "saga-1", 1, "tool", new Phase.Intent(), "input-B", t);
 
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "reserveInventory",
-				Phase.INTENT, "{}", "", t1);
-		String hash2 = HashChain.computeHash(hash1, "s1", 2, "reserveInventory",
-				Phase.EXECUTED, "{}", "ok", t2);
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
 
-		List<JournalEntry> entries = List.of(
-				new JournalEntry("s1", 1, "reserveInventory", Phase.INTENT, "{}", "", t1, hash1),
-				new JournalEntry("s1", 2, "reserveInventory", Phase.EXECUTED, "{}", "ok", t2, hash2)
-		);
+        @Test
+        @DisplayName("different previous hash changes the hash")
+        void hashChangesWithDifferentPreviousHash() {
+            Instant t = Instant.now();
+            String hash1 = HashChain.computeHash("aaa",
+                    "saga-1", 1, "tool", new Phase.Intent(), "input", t);
+            String hash2 = HashChain.computeHash("bbb",
+                    "saga-1", 1, "tool", new Phase.Intent(), "input", t);
 
-		assertThat(HashChain.verify(entries)).isTrue();
-	}
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
 
-	@Test
-	void verify_tamperedEntry_returnsFalse() {
-		Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
-		Instant t2 = Instant.parse("2026-07-21T10:00:01Z");
+        @Test
+        @DisplayName("different phase discriminators change the hash")
+        void hashChangesWithDifferentPhase() {
+            Instant t = Instant.now();
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "input", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Executed("result"), "input", t);
 
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "reserveInventory",
-				Phase.INTENT, "{}", "", t1);
-		String hash2 = HashChain.computeHash(hash1, "s1", 2, "reserveInventory",
-				Phase.EXECUTED, "{}", "ok", t2);
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
 
-		// Tamper: change payload of entry 2 but keep the old hash
-		List<JournalEntry> entries = List.of(
-				new JournalEntry("s1", 1, "reserveInventory", Phase.INTENT, "{}", "", t1, hash1),
-				new JournalEntry("s1", 2, "reserveInventory", Phase.EXECUTED, "{}", "TAMPERED", t2, hash2)
-		);
+        @Test
+        @DisplayName("phase data is included in the hash")
+        void phaseDataAffectsHash() {
+            Instant t = Instant.now();
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Executed("result-A"), "input", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Executed("result-B"), "input", t);
 
-		assertThat(HashChain.verify(entries)).isFalse();
-	}
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
+    }
 
-	@Test
-	void verify_emptyList_returnsTrue() {
-		assertThat(HashChain.verify(List.of())).isTrue();
-	}
+    @Nested
+    @DisplayName("verify chain")
+    class VerifyTests {
 
-	// ── Canonical encoding: one entry must have exactly one preimage ────────
+        @Test
+        @DisplayName("valid chain returns true")
+        void validChainReturnsTrue() {
+            Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
+            Instant t2 = Instant.parse("2026-07-21T10:00:01Z");
 
-	@Test
-	void computeHash_fieldContentCannotImpersonateAFieldBoundary() {
-		Instant now = Instant.parse("2026-07-21T10:00:00Z");
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "{}", t1);
+            String hash2 = HashChain.computeHash(hash1,
+                    "s1", 2, "tool", new Phase.Executed("ok"), "{}", t2);
 
-		// Under a plain delimiter join these two entries collapse to the same
-		// content string. They are different entries and must hash differently.
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.EXECUTED, "a|b", "c", now);
-		String hash2 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.EXECUTED, "a", "b|c", now);
+            List<AuditEntry> entries = List.of(
+                    new AuditEntry("s1", 1, "tool", new Phase.Intent(), "{}", t1, hash1),
+                    new AuditEntry("s1", 2, "tool", new Phase.Executed("ok"), "{}", t2, hash2));
 
-		assertThat(hash1).isNotEqualTo(hash2);
-	}
+            assertThat(HashChain.verify(entries)).isTrue();
+        }
 
-	@Test
-	void computeHash_shiftingCharactersBetweenAdjacentFieldsChangesHash() {
-		Instant now = Instant.parse("2026-07-21T10:00:00Z");
+        @Test
+        @DisplayName("tampered entry returns false")
+        void tamperedEntryReturnsFalse() {
+            Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
+            Instant t2 = Instant.parse("2026-07-21T10:00:01Z");
 
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "transferFunds",
-				Phase.EXECUTED, "", "", now);
-		String hash2 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "transfer",
-				Phase.EXECUTED, "Funds", "", now);
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "{}", t1);
+            String hash2 = HashChain.computeHash(hash1,
+                    "s1", 2, "tool", new Phase.Executed("ok"), "{}", t2);
 
-		assertThat(hash1).isNotEqualTo(hash2);
-	}
+            // Tamper: change phase data of entry 2 but keep old hash
+            List<AuditEntry> entries = List.of(
+                    new AuditEntry("s1", 1, "tool", new Phase.Intent(), "{}", t1, hash1),
+                    new AuditEntry("s1", 2, "tool", new Phase.Executed("TAMPERED"), "{}", t2, hash2));
 
-	@Test
-	void computeHash_handlesMultiByteCharactersUnambiguously() {
-		Instant now = Instant.parse("2026-07-21T10:00:00Z");
+            assertThat(HashChain.verify(entries)).isFalse();
+        }
 
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.EXECUTED, "€uro", "", now);
-		String hash2 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.EXECUTED, "€", "uro", now);
+        @Test
+        @DisplayName("empty list returns true")
+        void emptyListReturnsTrue() {
+            assertThat(HashChain.verify(List.of())).isTrue();
+        }
+    }
 
-		assertThat(hash1).isNotEqualTo(hash2);
-	}
+    @Nested
+    @DisplayName("canonical encoding — no collisions")
+    class EncodingTests {
 
-	// ── Timestamp precision must survive a microsecond-resolution store ─────
+        @Test
+        @DisplayName("field content cannot impersonate a field boundary")
+        void fieldContentCannotImpersonateFieldBoundary() {
+            Instant t = Instant.parse("2026-07-21T10:00:00Z");
+            // Under a plain delimiter join these two calls collapse to the same content
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "toolAB", new Phase.Executed("c"), "{}", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Executed("ABc"), "{}", t);
 
-	@Test
-	void computeHash_ignoresSubMicrosecondPrecision() {
-		// Postgres TIMESTAMP holds microseconds. An Instant carrying nanoseconds
-		// must hash to what will be read back, not to what was briefly in memory.
-		Instant nanos = Instant.parse("2026-07-21T10:00:00Z").plusNanos(123_456_789);
-		Instant micros = nanos.truncatedTo(ChronoUnit.MICROS);
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
 
-		assertThat(nanos).isNotEqualTo(micros);
-		assertThat(HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.INTENT, "{}", "", nanos))
-				.isEqualTo(HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-						Phase.INTENT, "{}", "", micros));
-	}
+        @Test
+        @DisplayName("shifting characters between adjacent fields changes hash")
+        void shiftingCharactersChangesHash() {
+            Instant t = Instant.parse("2026-07-21T10:00:00Z");
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "transferFunds", new Phase.Executed(""), "{}", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "transfer", new Phase.Executed("Funds"), "{}", t);
 
-	@Test
-	void computeHash_stillDistinguishesTimestampsOneMicrosecondApart() {
-		Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
-		Instant t2 = t1.plusNanos(1_000);
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
 
-		assertThat(HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.INTENT, "{}", "", t1))
-				.isNotEqualTo(HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-						Phase.INTENT, "{}", "", t2));
-	}
+        @Test
+        @DisplayName("multi-byte characters are unambiguous")
+        void multiBytCharactersAreUnambiguous() {
+            Instant t = Instant.parse("2026-07-21T10:00:00Z");
+            String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Executed("€uro"), "{}", t);
+            String hash2 = HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Executed("€"), "uro", t);
 
-	@Test
-	void canonicalTimestamp_isFixedWidthRegardlessOfTrailingZeros() {
-		// Instant.toString() suppresses trailing zeros, so its width varies.
-		// The canonical form must not.
-		String whole = HashChain.canonicalTimestamp(Instant.parse("2026-07-21T10:00:00Z"));
-		String fractional = HashChain.canonicalTimestamp(
-				Instant.parse("2026-07-21T10:00:00Z").plusNanos(123_000));
+            assertThat(hash1).isNotEqualTo(hash2);
+        }
+    }
 
-		assertThat(whole).isEqualTo("1784628000.000000");
-		assertThat(fractional).isEqualTo("1784628000.000123");
-		assertThat(whole).hasSameSizeAs(fractional);
-	}
+    @Nested
+    @DisplayName("timestamp precision")
+    class TimestampTests {
+
+        @Test
+        @DisplayName("sub-microsecond precision is truncated before hashing")
+        void subMicrosecondPrecisionIsTruncated() {
+            Instant nanos = Instant.parse("2026-07-21T10:00:00Z").plusNanos(123_456_789);
+            Instant micros = nanos.truncatedTo(ChronoUnit.MICROS);
+
+            assertThat(nanos).isNotEqualTo(micros);
+            assertThat(HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "{}", nanos))
+                .isEqualTo(HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "{}", micros));
+        }
+
+        @Test
+        @DisplayName("timestamps one microsecond apart still differ")
+        void timestampsOneMicrosecondApartDiffer() {
+            Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
+            Instant t2 = t1.plusNanos(1_000);
+
+            assertThat(HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "{}", t1))
+                .isNotEqualTo(HashChain.computeHash(HashChain.zeroHash(),
+                    "s1", 1, "tool", new Phase.Intent(), "{}", t2));
+        }
+
+        @Test
+        @DisplayName("canonical timestamp is fixed-width regardless of trailing zeros")
+        void canonicalTimestampIsFixedWidth() {
+            String whole = HashChain.canonicalTimestamp(Instant.parse("2026-07-21T10:00:00Z"));
+            String fractional = HashChain.canonicalTimestamp(
+                    Instant.parse("2026-07-21T10:00:00Z").plusNanos(123_000));
+
+            assertThat(whole).isEqualTo("1784628000.000000");
+            assertThat(fractional).isEqualTo("1784628000.000123");
+            assertThat(whole).hasSameSizeAs(fractional);
+        }
+    }
 }

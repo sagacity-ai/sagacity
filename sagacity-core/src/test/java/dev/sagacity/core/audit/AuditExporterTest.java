@@ -3,127 +3,127 @@ package dev.sagacity.core.audit;
 import java.time.Instant;
 import java.util.List;
 
+import dev.sagacity.core.journal.AuditEntry;
+import dev.sagacity.core.journal.AuditStore;
 import dev.sagacity.core.journal.HashChain;
-import dev.sagacity.core.journal.InMemorySideEffectJournal;
-import dev.sagacity.core.journal.JournalEntry;
+import dev.sagacity.core.journal.InMemoryAuditStore;
 import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.journal.SideEffectJournal;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AuditExporterTest {
 
-	@Test
-	void exportJsonLines_producesOneLinePerEntry() {
-		SideEffectJournal journal = new InMemorySideEffectJournal();
-		journal.append("s1", "tool-a", Phase.INTENT, "input1", "");
-		journal.append("s1", "tool-a", Phase.EXECUTED, "input1", "result1");
-		journal.append("s1", "tool-b", Phase.INTENT, "input2", "");
+    @Test
+    @DisplayName("exportJsonLines produces one line per entry")
+    void exportJsonLinesProducesOneLinePerEntry() {
+        AuditStore store = new InMemoryAuditStore();
+        store.append("s1", "tool-a", new Phase.Intent(), "input1");
+        store.append("s1", "tool-a", new Phase.Executed("result1"), "input1");
+        store.append("s1", "tool-b", new Phase.Intent(), "input2");
 
-		AuditExporter exporter = new AuditExporter(journal);
-		String export = exporter.exportJsonLines("s1");
+        AuditExporter exporter = new AuditExporter(store);
+        String export = exporter.exportJsonLines("s1");
 
-		String[] lines = export.split("\n");
-		assertThat(lines).hasSize(3);
-		assertThat(lines[0]).contains("\"toolName\":\"tool-a\"");
-		assertThat(lines[0]).contains("\"phase\":\"INTENT\"");
-		assertThat(lines[1]).contains("\"phase\":\"EXECUTED\"");
-		assertThat(lines[2]).contains("\"toolName\":\"tool-b\"");
-	}
+        String[] lines = export.split("\n");
+        assertThat(lines).hasSize(3);
+        assertThat(lines[0]).contains("\"toolName\":\"tool-a\"");
+        assertThat(lines[0]).contains("\"phase\":\"Intent\"");
+        assertThat(lines[1]).contains("\"phase\":\"Executed\"");
+        assertThat(lines[1]).contains("\"phaseData\":{\"result\":\"result1\"}");
+        assertThat(lines[2]).contains("\"toolName\":\"tool-b\"");
+    }
 
-	@Test
-	void exportJsonLines_emptyForUnknownSaga() {
-		SideEffectJournal journal = new InMemorySideEffectJournal();
-		AuditExporter exporter = new AuditExporter(journal);
+    @Test
+    @DisplayName("exportJsonLines returns empty string for unknown saga")
+    void exportJsonLinesEmptyForUnknownSaga() {
+        AuditExporter exporter = new AuditExporter(new InMemoryAuditStore());
+        assertThat(exporter.exportJsonLines("nonexistent")).isEmpty();
+    }
 
-		assertThat(exporter.exportJsonLines("nonexistent")).isEmpty();
-	}
+    @Test
+    @DisplayName("exportJsonLines escapes special characters")
+    void exportJsonLinesEscapesSpecialCharacters() {
+        AuditStore store = new InMemoryAuditStore();
+        store.append("s1", "tool", new Phase.Intent(), "has \"quotes\" and \nnewlines");
 
-	@Test
-	void exportJsonLines_escapesSpecialCharacters() {
-		SideEffectJournal journal = new InMemorySideEffectJournal();
-		journal.append("s1", "tool", Phase.INTENT, "has \"quotes\" and \nnewlines", "");
+        String export = new AuditExporter(store).exportJsonLines("s1");
+        assertThat(export).contains("\\\"quotes\\\"");
+        assertThat(export).contains("\\n");
+        assertThat(export).doesNotContain("\n\n");
+    }
 
-		AuditExporter exporter = new AuditExporter(journal);
-		String export = exporter.exportJsonLines("s1");
+    @Test
+    @DisplayName("verify returns a result for journal entries")
+    void verifyReturnsResult() {
+        AuditStore store = new InMemoryAuditStore();
+        store.append("s1", "tool", new Phase.Intent(), "in");
 
-		assertThat(export).contains("\\\"quotes\\\""); // escaped quotes
-		assertThat(export).contains("\\n"); // escaped newline
-		assertThat(export).doesNotContain("\n\n"); // no raw newlines in mid-line
-	}
+        AuditExporter.VerificationResult result = new AuditExporter(store).verify("s1");
+        assertThat(result).isNotNull();
+        assertThat(result.entryCount()).isEqualTo(1);
+    }
 
-	@Test
-	void verify_returnsResultForJournalEntries() {
-		SideEffectJournal journal = new InMemorySideEffectJournal();
-		AuditExporter exporter = new AuditExporter(journal);
-		journal.append("s1", "tool", Phase.INTENT, "in", "");
+    @Test
+    @DisplayName("verify on empty journal is valid")
+    void verifyEmptyJournalIsValid() {
+        AuditExporter.VerificationResult result = new AuditExporter(new InMemoryAuditStore()).verify("empty");
+        assertThat(result.valid()).isTrue();
+        assertThat(result.entryCount()).isZero();
+    }
 
-		AuditExporter.VerificationResult result = exporter.verify("s1");
-		// InMemory uses empty hash (no chain), so verify will detect mismatch.
-		// This validates the API contract.
-		assertThat(result).isNotNull();
-		assertThat(result.entryCount()).isEqualTo(1);
-	}
+    @Test
+    @DisplayName("verify on unchained journal reports 'not hash-chained' rather than tampered")
+    void verifyUnchainedJournalSaysSo() {
+        AuditStore store = new InMemoryAuditStore();
+        store.append("s1", "tool", new Phase.Intent(), "in");
+        store.append("s1", "tool", new Phase.Executed("ok"), "in");
 
-	@Test
-	void verify_emptyJournal_isValid() {
-		SideEffectJournal journal = new InMemorySideEffectJournal();
-		AuditExporter exporter = new AuditExporter(journal);
+        AuditExporter.VerificationResult result = new AuditExporter(store).verify("s1");
+        assertThat(result.valid()).isFalse();
+        assertThat(result.message()).contains("not hash-chained");
+        assertThat(result.breakAtIndex()).isEqualTo(-1);
+        assertThat(result.entryCount()).isEqualTo(2);
+    }
 
-		AuditExporter.VerificationResult result = exporter.verify("empty");
-		assertThat(result.valid()).isTrue();
-		assertThat(result.entryCount()).isZero();
-	}
+    @Test
+    @DisplayName("verify on chained journal detects tampered entry")
+    void verifyChainedJournalDetectsTamperedEntry() {
+        Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
+        Instant t2 = Instant.parse("2026-07-21T10:00:01Z");
+        String hash1 = HashChain.computeHash(HashChain.zeroHash(),
+                "s1", 1, "tool", new Phase.Intent(), "in", t1);
+        String hash2 = HashChain.computeHash(hash1,
+                "s1", 2, "tool", new Phase.Executed("ok"), "in", t2);
 
-	@Test
-	void verify_unchainedJournal_saysSoInsteadOfReportingTampering() {
-		SideEffectJournal journal = new InMemorySideEffectJournal();
-		journal.append("s1", "tool", Phase.INTENT, "in", "");
-		journal.append("s1", "tool", Phase.EXECUTED, "in", "ok");
-		AuditExporter exporter = new AuditExporter(journal);
+        // Tamper: change phase data of entry 2 but keep old hash
+        AuditStore tampered = new FixedAuditStore(List.of(
+                new AuditEntry("s1", 1, "tool", new Phase.Intent(), "in", t1, hash1),
+                new AuditEntry("s1", 2, "tool", new Phase.Executed("TAMPERED"), "in", t2, hash2)));
 
-		AuditExporter.VerificationResult result = exporter.verify("s1");
+        AuditExporter.VerificationResult result = new AuditExporter(tampered).verify("s1");
+        assertThat(result.valid()).isFalse();
+        assertThat(result.message()).contains("hash mismatch at seq=2");
+        assertThat(result.breakAtIndex()).isEqualTo(1);
+    }
 
-		// Not valid — an unchained journal proves nothing — but an operator must
-		// be able to tell "no evidence recorded" from "evidence says tampered".
-		assertThat(result.valid()).isFalse();
-		assertThat(result.message()).contains("not hash-chained");
-		assertThat(result.breakAtIndex()).isEqualTo(-1);
-		assertThat(result.entryCount()).isEqualTo(2);
-	}
+    /** Read-only AuditStore backed by a fixed list — for tamper-detection tests. */
+    private record FixedAuditStore(List<AuditEntry> entries) implements AuditStore {
 
-	@Test
-	void verify_chainedJournal_detectsATamperedEntry() {
-		Instant t1 = Instant.parse("2026-07-21T10:00:00Z");
-		Instant t2 = Instant.parse("2026-07-21T10:00:01Z");
-		String hash1 = HashChain.computeHash(HashChain.zeroHash(), "s1", 1, "tool",
-				Phase.INTENT, "in", "", t1);
-		String hash2 = HashChain.computeHash(hash1, "s1", 2, "tool", Phase.EXECUTED, "in", "ok", t2);
+        @Override
+        public AuditEntry append(String sagaId, String toolName, Phase phase, String input) {
+            throw new UnsupportedOperationException("read-only test store");
+        }
 
-		SideEffectJournal tampered = new FixedJournal(List.of(
-				new JournalEntry("s1", 1, "tool", Phase.INTENT, "in", "", t1, hash1),
-				new JournalEntry("s1", 2, "tool", Phase.EXECUTED, "in", "ROLLED-BACK", t2, hash2)));
+        @Override
+        public List<AuditEntry> findBySagaId(String sagaId) {
+            return this.entries;
+        }
 
-		AuditExporter.VerificationResult result = new AuditExporter(tampered).verify("s1");
-
-		assertThat(result.valid()).isFalse();
-		assertThat(result.message()).contains("hash mismatch at seq=2");
-		assertThat(result.breakAtIndex()).isEqualTo(1);
-	}
-
-	/** Serves a fixed entry list so a tampered chain can be constructed directly. */
-	private record FixedJournal(List<JournalEntry> entries) implements SideEffectJournal {
-
-		@Override
-		public JournalEntry append(String sagaId, String toolName, Phase phase, String input, String payload) {
-			throw new UnsupportedOperationException("read-only test journal");
-		}
-
-		@Override
-		public List<JournalEntry> entries(String sagaId) {
-			return this.entries;
-		}
-	}
-
+        @Override
+        public List<AuditEntry> findBySagaId(String sagaId, Class<? extends Phase> phaseType) {
+            return this.entries.stream().filter(e -> phaseType.isInstance(e.phase())).toList();
+        }
+    }
 }

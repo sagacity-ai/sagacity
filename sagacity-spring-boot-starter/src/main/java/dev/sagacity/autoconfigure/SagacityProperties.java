@@ -31,6 +31,17 @@ public class SagacityProperties {
 	/** Global retry backoff configuration. Per-tool retries are declared via {@code @Compensable}. */
 	private Retry retry = new Retry();
 
+	/**
+	 * AuditStore backend selection. Valid values:
+	 * <ul>
+	 *   <li>{@code jdbc} (default) — durable JDBC store with hash chain
+	 *   <li>{@code slf4j} — zero-infrastructure logging store (dev/eval only)
+	 *   <li>{@code memory} — in-memory store (test only, no persistence)
+	 * </ul>
+	 * Has no effect when {@code sagacity.cloud.api-key} is set (cloud takes priority).
+	 */
+	private String auditStore = "jdbc";
+
 	public boolean isEnabled() { return enabled; }
 	public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
@@ -48,6 +59,9 @@ public class SagacityProperties {
 
 	public Retry getRetry() { return retry; }
 	public void setRetry(Retry retry) { this.retry = retry; }
+
+	public String getAuditStore() { return auditStore; }
+	public void setAuditStore(String auditStore) { this.auditStore = auditStore; }
 
 	/**
 	 * Global retry backoff configuration.
