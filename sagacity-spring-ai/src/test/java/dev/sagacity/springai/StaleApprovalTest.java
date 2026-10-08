@@ -9,6 +9,7 @@ import dev.sagacity.core.journal.HashChain;
 import dev.sagacity.core.journal.Phase;
 import dev.sagacity.core.saga.SagaStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
@@ -19,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Tests for stale approval detection.
  *
- * The attack scenario: a human approves tool execution for payload A,
+ * <p>The attack scenario: a human approves tool execution for payload A,
  * but by the time the tool runs the model has re-planned and the live
  * payload is B. Without hash binding, B executes under A's approval.
  * Sagacity should detect this and reject execution, running compensation.
@@ -37,24 +38,23 @@ class StaleApprovalTest {
         tools = sagacity.wrap(transferTools);
     }
 
-    // ── Core stale-approval scenarios ──────────────────────────────────────
-
     @Test
-    void approvalRequest_storesInputHashOfOriginalPayload() {
+    @DisplayName("approval request stores input hash of original payload")
+    void approvalRequestStoresInputHash() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
         });
 
         ApprovalRequest request = sagacity.pendingApprovals("saga-1").get(0);
-
         assertThat(request.inputHash()).isNotBlank();
         assertThat(request.inputHash())
                 .isEqualTo(HashChain.sha256("{\"amount\":100,\"to\":\"alice\"}"));
     }
 
     @Test
-    void resumeSaga_withMatchingPayload_executesTool() {
+    @DisplayName("resumeSaga with matching payload executes the tool")
+    void resumeSagaWithMatchingPayloadExecutesTool() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
@@ -63,10 +63,8 @@ class StaleApprovalTest {
         long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
         sagacity.approve("saga-1", seq, "manager@company.com");
 
-        SagaResult<String> result = sagacity.resumeSaga(
-                "saga-1", seq,
-                "{\"amount\":100,\"to\":\"alice\"}",   // same payload as approved
-                byName(tools, "sendWireTransfer"));
+        SagaResult<String> result = sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":100,\"to\":\"alice\"}", byName(tools, "sendWireTransfer"));
 
         assertThat(result.status()).isEqualTo(SagaStatus.COMPLETED);
         assertThat(transferTools.lastTransferTo).isEqualTo("alice");
@@ -74,8 +72,8 @@ class StaleApprovalTest {
     }
 
     @Test
-    void resumeSaga_withTamperedPayload_rejectsAndCompensates() {
-        // Prior step: reserve inventory (compensatable)
+    @DisplayName("resumeSaga with tampered payload rejects and compensates")
+    void resumeSagaWithTamperedPayloadRejectsAndCompensates() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "reserveInventory").call("{\"item\":\"laptop\"}");
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
@@ -85,24 +83,21 @@ class StaleApprovalTest {
         long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
         sagacity.approve("saga-1", seq, "manager@company.com");
 
-        // Resume with a DIFFERENT payload — the stale approval attack
-        SagaResult<String> result = sagacity.resumeSaga(
-                "saga-1", seq,
-                "{\"amount\":10000,\"to\":\"mallory\"}",  // tampered!
-                byName(tools, "sendWireTransfer"));
+        SagaResult<String> result = sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":10000,\"to\":\"mallory\"}", byName(tools, "sendWireTransfer"));
 
         assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
-        assertThat(transferTools.lastTransferTo).isNull();      // tool never ran
-        assertThat(transferTools.compensationCount).isEqualTo(1); // prior steps undone, once
+        assertThat(transferTools.lastTransferTo).isNull();
+        assertThat(transferTools.compensationCount).isEqualTo(1);
 
-        // Verify REJECTED phase recorded in journal
-        assertThat(sagacity.journal().entries("saga-1"))
-                .anyMatch(e -> e.phase() == Phase.REJECTED
-                        && e.payload().contains("stale-approval"));
+        assertThat(sagacity.auditStore().findBySagaId("saga-1"))
+                .anyMatch(e -> e.phase() instanceof Phase.Rejected
+                        && ((Phase.Rejected) e.phase()).reason().contains("stale-approval"));
     }
 
     @Test
-    void resumeSaga_withTamperedPayload_doesNotExecuteTool() {
+    @DisplayName("resumeSaga with tampered payload does not execute the tool")
+    void resumeSagaWithTamperedPayloadDoesNotExecuteTool() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
@@ -111,19 +106,16 @@ class StaleApprovalTest {
         long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
         sagacity.approve("saga-1", seq, "manager@company.com");
 
-        sagacity.resumeSaga(
-                "saga-1", seq,
-                "{\"amount\":999999,\"to\":\"attacker\"}",
-                byName(tools, "sendWireTransfer"));
+        sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":999999,\"to\":\"attacker\"}", byName(tools, "sendWireTransfer"));
 
-        // The critical assertion: money never moved
         assertThat(transferTools.lastTransferTo).isNull();
         assertThat(transferTools.lastAmount).isEqualTo(0);
     }
 
     @Test
-    void resumeSaga_withNoPendingApproval_throwsIllegalState() {
-        // Try to resume a saga that never had an approval request
+    @DisplayName("resumeSaga with no pending approval throws IllegalState")
+    void resumeSagaWithNoPendingApprovalThrows() {
         assertThatThrownBy(() ->
                 sagacity.resumeSaga("no-such-saga", 99, "{\"amount\":100,\"to\":\"alice\"}",
                         byName(tools, "sendWireTransfer")))
@@ -132,33 +124,36 @@ class StaleApprovalTest {
     }
 
     @Test
-    void approvalRequest_inputHashIsNonEmpty() {
+    @DisplayName("approval request input hash is a 64-char hex SHA-256")
+    void approvalRequestInputHashIsSha256() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":50,\"to\":\"bob\"}");
             return null;
         });
 
         ApprovalRequest req = sagacity.pendingApprovals("saga-1").get(0);
-        // Hash should be 64 hex chars (SHA-256)
         assertThat(req.inputHash()).hasSize(64);
         assertThat(req.inputHash()).matches("[0-9a-f]{64}");
     }
 
     @Test
-    void differentPayloads_produceDifferentHashes() {
+    @DisplayName("different payloads produce different hashes")
+    void differentPayloadsProduceDifferentHashes() {
         String hash1 = HashChain.sha256("{\"amount\":100,\"to\":\"alice\"}");
         String hash2 = HashChain.sha256("{\"amount\":10000,\"to\":\"mallory\"}");
         assertThat(hash1).isNotEqualTo(hash2);
     }
 
     @Test
-    void samePayload_producesSameHash_deterministic() {
+    @DisplayName("same payload always produces the same hash")
+    void samePayloadProducesSameHash() {
         String payload = "{\"amount\":100,\"to\":\"alice\"}";
         assertThat(HashChain.sha256(payload)).isEqualTo(HashChain.sha256(payload));
     }
 
     @Test
-    void resumeSaga_journalsIntentAndExecuted_onSuccess() {
+    @DisplayName("resumeSaga journals Intent and Executed on success")
+    void resumeSagaJournalsIntentAndExecutedOnSuccess() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
@@ -170,16 +165,16 @@ class StaleApprovalTest {
         sagacity.resumeSaga("saga-1", seq, "{\"amount\":100,\"to\":\"alice\"}",
                 byName(tools, "sendWireTransfer"));
 
-        var entries = sagacity.journal().entries("saga-1");
-        assertThat(entries).anyMatch(e -> e.phase() == Phase.INTENT
+        var entries = sagacity.auditStore().findBySagaId("saga-1");
+        assertThat(entries).anyMatch(e -> e.phase() instanceof Phase.Intent
                 && e.toolName().equals("sendWireTransfer"));
-        assertThat(entries).anyMatch(e -> e.phase() == Phase.EXECUTED
+        assertThat(entries).anyMatch(e -> e.phase() instanceof Phase.Executed
                 && e.toolName().equals("sendWireTransfer"));
     }
 
     @Test
-    void whitespaceVariation_inPayload_isDetectedAsStale() {
-        // Payload with no spaces approved; payload with spaces submitted at resume
+    @DisplayName("whitespace variation in payload is detected as stale")
+    void whitespaceVariationIsDetectedAsStale() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
@@ -188,43 +183,38 @@ class StaleApprovalTest {
         long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
         sagacity.approve("saga-1", seq, "manager@company.com");
 
-        // Even minor whitespace changes should be rejected (exact payload binding)
-        SagaResult<String> result = sagacity.resumeSaga(
-                "saga-1", seq,
-                "{ \"amount\": 100, \"to\": \"alice\" }",  // whitespace differs
-                byName(tools, "sendWireTransfer"));
+        SagaResult<String> result = sagacity.resumeSaga("saga-1", seq,
+                "{ \"amount\": 100, \"to\": \"alice\" }", byName(tools, "sendWireTransfer"));
 
         assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
         assertThat(transferTools.lastTransferTo).isNull();
     }
 
-    // ── Approval must actually exist ───────────────────────────────────────
-
     @Test
-    void resumeSaga_withoutApproval_refusesToExecuteEvenWhenPayloadMatches() {
+    @DisplayName("resumeSaga without approval refuses even when payload matches")
+    void resumeSagaWithoutApprovalRefuses() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
         });
 
         long seq = sagacity.pendingApprovals("saga-1").get(0).journalSeq();
-        // NOTE: approve() is deliberately never called.
+        // approve() deliberately NOT called
 
-        SagaResult<String> result = sagacity.resumeSaga(
-                "saga-1", seq,
-                "{\"amount\":100,\"to\":\"alice\"}",  // payload is the approved-for one
-                byName(tools, "sendWireTransfer"));
+        SagaResult<String> result = sagacity.resumeSaga("saga-1", seq,
+                "{\"amount\":100,\"to\":\"alice\"}", byName(tools, "sendWireTransfer"));
 
         assertThat(result.status()).isEqualTo(SagaStatus.COMPENSATED);
         assertThat(transferTools.lastTransferTo).isNull();
         assertThat(result.failure()).hasMessageContaining("no human approval recorded");
-        assertThat(sagacity.journal().entries("saga-1"))
-                .anyMatch(e -> e.phase() == Phase.REJECTED
-                        && e.payload().contains("no approval recorded"));
+        assertThat(sagacity.auditStore().findBySagaId("saga-1"))
+                .anyMatch(e -> e.phase() instanceof Phase.Rejected
+                        && ((Phase.Rejected) e.phase()).reason().contains("no approval recorded"));
     }
 
     @Test
-    void resumeSaga_afterRejection_cannotBeResurrected() {
+    @DisplayName("resumeSaga after rejection cannot be resurrected")
+    void resumeSagaAfterRejectionCannotBeResurrected() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
             return null;
@@ -241,17 +231,16 @@ class StaleApprovalTest {
     }
 
     @Test
-    void resumeSaga_withApprovalCarryingNoPayloadHash_failsClosed() {
+    @DisplayName("approval carrying no payload hash fails closed")
+    void approvalCarryingNoPayloadHashFailsClosed() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "reserveInventory").call("{\"item\":\"laptop\"}");
             return null;
         });
 
-        // A request built through the legacy constructor has an empty inputHash.
-        // Nothing about it can be verified, so it must be refused — not waved through.
         long seq = 99;
-        sagacity.approvalStore().save(new ApprovalRequest("saga-1", seq, "sendWireTransfer",
-                "{\"amount\":100,\"to\":\"alice\"}"));
+        sagacity.approvalStore().save(new ApprovalRequest("saga-1", seq,
+                "sendWireTransfer", "{\"amount\":100,\"to\":\"alice\"}"));
         sagacity.approve("saga-1", seq, "manager@company.com");
 
         SagaResult<String> result = sagacity.resumeSaga("saga-1", seq,
@@ -262,10 +251,9 @@ class StaleApprovalTest {
         assertThat(result.failure()).hasMessageContaining("no recorded payload hash");
     }
 
-    // ── Compensation must run exactly once ─────────────────────────────────
-
     @Test
-    void resumeSaga_staleApproval_compensatesExactlyOnce() {
+    @DisplayName("stale approval compensates exactly once")
+    void staleApprovalCompensatesExactlyOnce() {
         sagacity.saga("saga-1", () -> {
             byName(tools, "reserveInventory").call("{\"item\":\"laptop\"}");
             byName(tools, "sendWireTransfer").call("{\"amount\":100,\"to\":\"alice\"}");
@@ -279,13 +267,12 @@ class StaleApprovalTest {
                 "{\"amount\":10000,\"to\":\"mallory\"}", byName(tools, "sendWireTransfer"));
 
         assertThat(transferTools.compensationCount).isEqualTo(1);
-        assertThat(sagacity.journal().entries("saga-1"))
-                .filteredOn(e -> e.phase() == Phase.COMPENSATED)
-                .hasSize(1);
+        assertThat(sagacity.auditStore().findBySagaId("saga-1", Phase.Compensated.class)).hasSize(1);
     }
 
     @Test
-    void resumeSaga_whenApprovedToolFails_compensatesExactlyOnce() {
+    @DisplayName("when approved tool fails, compensates exactly once")
+    void whenApprovedToolFailsCompensatesExactlyOnce() {
         FailingTransferTools failing = new FailingTransferTools();
         ToolCallback[] failTools = sagacity.wrap(failing);
 
@@ -305,7 +292,7 @@ class StaleApprovalTest {
         assertThat(failing.compensationCount).isEqualTo(1);
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+    // ── helpers ─────────────────────────────────────────────────────────────
 
     private static ToolCallback byName(ToolCallback[] callbacks, String name) {
         for (ToolCallback cb : callbacks) {
@@ -314,29 +301,19 @@ class StaleApprovalTest {
         throw new IllegalArgumentException("no tool: " + name);
     }
 
-    // ── Test tool beans ────────────────────────────────────────────────────
+    // ── test tool beans ──────────────────────────────────────────────────────
 
     static class TransferTools {
-
         String lastTransferTo = null;
         int lastAmount = 0;
-
-        /**
-         * Counted, not flagged. A boolean cannot tell "compensated" apart from
-         * "compensated twice", and double-compensation means a double refund.
-         */
         int compensationCount = 0;
 
         @Tool(description = "Reserve inventory item")
         @Compensable(by = "releaseInventory")
-        public String reserveInventory(String item) {
-            return "reserved-" + item;
-        }
+        public String reserveInventory(String item) { return "reserved-" + item; }
 
         @Compensation
-        public void releaseInventory(CompensationContext ctx) {
-            this.compensationCount++;
-        }
+        public void releaseInventory(CompensationContext ctx) { this.compensationCount++; }
 
         @Tool(description = "Send wire transfer")
         @Compensable(reversibility = Reversibility.IRREVERSIBLE)
@@ -345,31 +322,22 @@ class StaleApprovalTest {
             this.lastTransferTo = to;
             return "transfer-ok";
         }
-
     }
 
-    /** Same shape, but the approved tool blows up at execution time. */
     static class FailingTransferTools {
-
         int compensationCount = 0;
 
         @Tool(description = "Reserve inventory item")
         @Compensable(by = "releaseInventory")
-        public String reserveInventory(String item) {
-            return "reserved-" + item;
-        }
+        public String reserveInventory(String item) { return "reserved-" + item; }
 
         @Compensation
-        public void releaseInventory(CompensationContext ctx) {
-            this.compensationCount++;
-        }
+        public void releaseInventory(CompensationContext ctx) { this.compensationCount++; }
 
         @Tool(description = "Send wire transfer")
         @Compensable(reversibility = Reversibility.IRREVERSIBLE)
         public String sendWireTransfer(String amount, String to) {
             throw new IllegalStateException("payment gateway unreachable");
         }
-
     }
-
 }
