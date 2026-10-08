@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: sagacity-mcp-server
+
+  # Database — configure via environment variables in production
+  datasource:
+    url: ${SAGACITY_DB_URL:jdbc:postgresql://localhost:5432/sagacity}
+    username: ${SAGACITY_DB_USER:sagacity}
+    password: ${SAGACITY_DB_PASSWORD:sagacity}
+
+  # Schema initialisation — sagacity-schema.sql is on the classpath via sagacity-core dependency
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sagacity-schema.sql
+
+  # Spring AI MCP server — Streamable-HTTP transport
+  ai:
+    mcp:
+      server:
+        name: sagacity-governance
+        version: 0.4.0
+        # Streamable-HTTP: agents connect via HTTP, no persistent connection needed
+        type: SYNC
+        stdio: false
+
+server:
+  port: ${PORT:8090}
+
+# Logging
+logging:
+  level:
+    dev.sagacity: INFO
+    org.springframework.ai.mcp: INFO

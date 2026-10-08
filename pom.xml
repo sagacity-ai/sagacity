@@ -53,6 +53,7 @@
         <module>sagacity-core</module>
         <module>sagacity-spring-ai</module>
         <module>sagacity-spring-boot-starter</module>
+        <module>sagacity-mcp-server</module>
         <module>sagacity-examples</module>
         <!-- Last: aggregates coverage over everything above -->
         <module>sagacity-coverage</module>
@@ -82,6 +83,7 @@
           errors after a successful upload.
         -->
         <central-publishing.version>0.11.0</central-publishing.version>
+        <testcontainers.version>1.20.4</testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -119,6 +121,24 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mysql</artifactId>
+                <version>${testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

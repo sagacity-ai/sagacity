@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.sumitvairagar</groupId>
+        <artifactId>sagacity-parent</artifactId>
+        <version>0.4.0</version>
+    </parent>
+
+    <artifactId>sagacity-mcp-server</artifactId>
+    <name>Sagacity MCP Server</name>
+    <description>
+        Standalone MCP server exposing Sagacity governance tools — audit trail,
+        human approval gates, and compensation — to any AI agent regardless of
+        framework or language.
+    </description>
+
+    <dependencies>
+        <!-- Sagacity core: journal, approval store, compensation runner -->
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-core</artifactId>
+        </dependency>
+
+        <!-- Spring Boot web (Streamable-HTTP MCP transport needs a servlet container) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- JDBC for JdbcSideEffectJournal and PostgresApprovalStore -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- Spring AI MCP server (Streamable-HTTP transport) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server</artifactId>
+            <version>${spring-ai.version}</version>
+        </dependency>
+
+        <!-- Postgres driver (runtime) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── Test ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers for integration tests against real Postgres -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <executions>
+                    <execution>
+                        <id>repackage</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <!--
+                              Keeps the original thin jar intact for Failsafe / Surefire
+                              classpath resolution. The runnable fat jar gets a separate
+                              "exec" classifier: sagacity-mcp-server-0.4.0-exec.jar.
+                            -->
+                            <classifier>exec</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
