@@ -54,6 +54,7 @@
         <module>sagacity-spring-ai</module>
         <module>sagacity-spring-boot-starter</module>
         <module>sagacity-mcp-server</module>
+        <module>sagacity-langchain4j</module>
         <module>sagacity-examples</module>
         <!-- Last: aggregates coverage over everything above -->
         <module>sagacity-coverage</module>

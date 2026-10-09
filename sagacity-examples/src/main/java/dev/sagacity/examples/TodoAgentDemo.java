@@ -152,8 +152,8 @@ public final class TodoAgentDemo {
 		System.out.println("┌─────┬──────────────────┬─────────────────────┬──────────────────────────────┐");
 		System.out.printf("│ %3s │ %-16s │ %-19s │ %-28s │%n", "seq", "tool", "phase", "payload");
 		System.out.println("├─────┼──────────────────┼─────────────────────┼──────────────────────────────┤");
-		sagacity.journal().entries("todo-saga-1").forEach(e -> System.out.printf("│ %3d │ %-16s │ %-19s │ %-28s │%n",
-				e.seq(), truncate(e.toolName(), 16), e.phase(), truncate(e.payload(), 28)));
+		sagacity.auditStore().findBySagaId("todo-saga-1").forEach(e -> System.out.printf("│ %3d │ %-16s │ %-19s │ %-28s │%n",
+				e.seq(), truncate(e.toolName(), 16), e.phase().discriminator(), truncate(e.phase().toJson(), 28)));
 		System.out.println("└─────┴──────────────────┴─────────────────────┴──────────────────────────────┘");
 	}
 

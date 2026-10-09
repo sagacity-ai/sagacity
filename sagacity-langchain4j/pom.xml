@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.sumitvairagar</groupId>
+        <artifactId>sagacity-parent</artifactId>
+        <version>0.4.0</version>
+    </parent>
+
+    <artifactId>sagacity-langchain4j</artifactId>
+    <name>Sagacity LangChain4j</name>
+    <description>
+        LangChain4j integration for Sagacity: wrap @Tool methods with @Compensable to get
+        approval gates, tamper-evident audit trail, and automatic compensation on failure —
+        framework-agnostic, no Spring required.
+    </description>
+
+    <dependencies>
+        <!-- Sagacity core: AuditStore, CompensationRunner, @Compensable -->
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-core</artifactId>
+        </dependency>
+
+        <!-- LangChain4j core: ToolExecutor, ToolExecutionRequest, @Tool -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <version>1.14.1</version>
+        </dependency>
+
+        <!-- Full LangChain4j (DefaultToolExecutor, AiServices) -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.14.1</version>
+        </dependency>
+
+        <!-- ── Test ── -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- H2 for in-process JDBC tests -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

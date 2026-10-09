@@ -74,10 +74,10 @@ public final class PlaceOrderDemo {
 
 		System.out.println("\nSaga outcome: " + result.status() + " (cause: " + result.failure().getMessage() + ")");
 		System.out.println("\nSide-effect journal (the audit trail):");
-		sagacity.journal()
-			.entries("place-order-123")
+		sagacity.auditStore()
+			.findBySagaId("place-order-123")
 			.forEach(e -> System.out.printf("  #%d %-18s %-20s %s%n", e.seq(), e.toolName(), e.phase(),
-					e.payload().isEmpty() ? "" : "· " + e.payload()));
+					e.phase().toJson().equals("{}") ? "" : "· " + e.phase().toJson()));
 	}
 
 }
