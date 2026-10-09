@@ -4,10 +4,10 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import dev.sagacity.core.approval.ApprovalRequest;
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.journal.AuditStore;
+import dev.sagacity.control.ApprovalRequest;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.audit.Phase;
+import dev.sagacity.audit.AuditStore;
 
 /**
  * MCP tool: request human approval before an irreversible action.

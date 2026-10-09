@@ -2,9 +2,9 @@ package dev.sagacity.examples;
 
 import java.util.List;
 
-import dev.sagacity.core.annotation.Compensable;
-import dev.sagacity.core.annotation.Compensation;
-import dev.sagacity.core.compensation.CompensationContext;
+import dev.sagacity.recovery.Compensable;
+import dev.sagacity.recovery.Compensation;
+import dev.sagacity.recovery.CompensationContext;
 import dev.sagacity.springai.SagaResult;
 import dev.sagacity.springai.Sagacity;
 

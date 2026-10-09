@@ -2,12 +2,12 @@ package dev.sagacity.lc4j;
 
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.service.tool.ToolExecutor;
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.approval.InMemoryApprovalStore;
-import dev.sagacity.core.compensation.CompensationRegistry;
-import dev.sagacity.core.compensation.CompensationRunner;
-import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.InMemoryAuditStore;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.control.InMemoryApprovalStore;
+import dev.sagacity.recovery.CompensationRegistry;
+import dev.sagacity.recovery.CompensationRunner;
+import dev.sagacity.audit.AuditStore;
+import dev.sagacity.audit.InMemoryAuditStore;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;

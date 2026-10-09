@@ -1,12 +1,12 @@
 package dev.sagacity.springai;
 
-import dev.sagacity.core.Reversibility;
-import dev.sagacity.core.approval.ApprovalRequest;
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.HashChain;
-import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.retry.RetryPolicy;
+import dev.sagacity.control.Reversibility;
+import dev.sagacity.control.ApprovalRequest;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.audit.AuditStore;
+import dev.sagacity.audit.HashChain;
+import dev.sagacity.audit.Phase;
+import dev.sagacity.recovery.RetryPolicy;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;

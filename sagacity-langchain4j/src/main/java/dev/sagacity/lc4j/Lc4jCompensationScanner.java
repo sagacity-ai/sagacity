@@ -1,13 +1,13 @@
 package dev.sagacity.lc4j;
 
 import dev.langchain4j.agent.tool.Tool;
-import dev.sagacity.core.Reversibility;
-import dev.sagacity.core.annotation.Compensable;
-import dev.sagacity.core.annotation.Compensation;
-import dev.sagacity.core.compensation.CompensationContext;
-import dev.sagacity.core.compensation.CompensationHandler;
-import dev.sagacity.core.compensation.CompensationRegistry;
-import dev.sagacity.core.retry.RetryPolicy;
+import dev.sagacity.control.Reversibility;
+import dev.sagacity.recovery.Compensable;
+import dev.sagacity.recovery.Compensation;
+import dev.sagacity.recovery.CompensationContext;
+import dev.sagacity.recovery.CompensationHandler;
+import dev.sagacity.recovery.CompensationRegistry;
+import dev.sagacity.recovery.RetryPolicy;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

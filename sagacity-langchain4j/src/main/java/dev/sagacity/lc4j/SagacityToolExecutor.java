@@ -6,10 +6,10 @@ import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
 import dev.langchain4j.service.tool.ToolExecutionResult;
 import dev.langchain4j.service.tool.ToolExecutor;
-import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.compensation.CompensationRunner;
-import dev.sagacity.core.retry.RetryPolicy;
+import dev.sagacity.audit.AuditStore;
+import dev.sagacity.audit.Phase;
+import dev.sagacity.recovery.CompensationRunner;
+import dev.sagacity.recovery.RetryPolicy;
 
 import java.lang.reflect.Method;
 

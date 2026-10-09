@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.sumitvairagar</groupId>
         <artifactId>sagacity-parent</artifactId>
-        <version>0.4.0</version>
+        <version>0.5.0</version>
     </parent>
 
     <artifactId>sagacity-coverage</artifactId>
@@ -15,7 +15,7 @@
     <description>Aggregate JaCoCo report across all modules. Not published.</description>
 
     <!--
-      Per-module JaCoCo reports understate coverage: a class in sagacity-core
+      Per-module JaCoCo reports understate coverage: a class in sagacity-audit
       exercised only by sagacity-spring-ai tests shows as 0% in core's own
       report. This module depends on every published module so report-aggregate
       can merge the execution data into one honest number.
@@ -38,7 +38,17 @@
     <dependencies>
         <dependency>
             <groupId>io.github.sumitvairagar</groupId>
-            <artifactId>sagacity-core</artifactId>
+            <artifactId>sagacity-audit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-control</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-recovery</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

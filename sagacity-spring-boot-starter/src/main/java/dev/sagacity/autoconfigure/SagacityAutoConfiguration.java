@@ -2,13 +2,13 @@ package dev.sagacity.autoconfigure;
 
 import javax.sql.DataSource;
 
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.approval.InMemoryApprovalStore;
-import dev.sagacity.core.approval.PostgresApprovalStore;
-import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.InMemoryAuditStore;
-import dev.sagacity.core.journal.JdbcAuditStore;
-import dev.sagacity.core.journal.Slf4jAuditStore;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.control.InMemoryApprovalStore;
+import dev.sagacity.control.PostgresApprovalStore;
+import dev.sagacity.audit.AuditStore;
+import dev.sagacity.audit.InMemoryAuditStore;
+import dev.sagacity.audit.JdbcAuditStore;
+import dev.sagacity.audit.Slf4jAuditStore;
 import dev.sagacity.springai.Sagacity;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;

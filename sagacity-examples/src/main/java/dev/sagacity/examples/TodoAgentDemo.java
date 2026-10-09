@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import dev.sagacity.core.Reversibility;
-import dev.sagacity.core.annotation.Compensable;
-import dev.sagacity.core.annotation.Compensation;
-import dev.sagacity.core.compensation.CompensationContext;
+import dev.sagacity.control.Reversibility;
+import dev.sagacity.recovery.Compensable;
+import dev.sagacity.recovery.Compensation;
+import dev.sagacity.recovery.CompensationContext;
 import dev.sagacity.springai.SagaResult;
 import dev.sagacity.springai.Sagacity;
 

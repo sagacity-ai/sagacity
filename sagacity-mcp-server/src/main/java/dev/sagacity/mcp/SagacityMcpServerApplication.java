@@ -6,12 +6,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.approval.PostgresApprovalStore;
-import dev.sagacity.core.compensation.CompensationRegistry;
-import dev.sagacity.core.compensation.CompensationRunner;
-import dev.sagacity.core.journal.JdbcAuditStore;
-import dev.sagacity.core.journal.AuditStore;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.control.PostgresApprovalStore;
+import dev.sagacity.recovery.CompensationRegistry;
+import dev.sagacity.recovery.CompensationRunner;
+import dev.sagacity.audit.JdbcAuditStore;
+import dev.sagacity.audit.AuditStore;
 
 /**
  * Sagacity MCP Server — exposes Sagacity governance as MCP tools.

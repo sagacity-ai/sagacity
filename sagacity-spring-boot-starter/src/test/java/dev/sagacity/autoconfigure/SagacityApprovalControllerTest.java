@@ -1,10 +1,10 @@
 package dev.sagacity.autoconfigure;
 
-import dev.sagacity.core.Reversibility;
-import dev.sagacity.core.annotation.Compensable;
-import dev.sagacity.core.annotation.Compensation;
-import dev.sagacity.core.compensation.CompensationContext;
-import dev.sagacity.core.journal.Phase;
+import dev.sagacity.control.Reversibility;
+import dev.sagacity.recovery.Compensable;
+import dev.sagacity.recovery.Compensation;
+import dev.sagacity.recovery.CompensationContext;
+import dev.sagacity.audit.Phase;
 import dev.sagacity.springai.Sagacity;
 
 import org.junit.jupiter.api.BeforeEach;

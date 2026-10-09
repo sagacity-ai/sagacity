@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.sumitvairagar</groupId>
+        <artifactId>sagacity-parent</artifactId>
+        <version>0.5.0</version>
+    </parent>
+
+    <artifactId>sagacity-audit</artifactId>
+    <name>Sagacity Audit</name>
+    <description>
+        Foundation module: AuditStore SPI, sealed Phase variants, SHA-256 hash-chained AuditEntry,
+        five backends (JDBC, InMemory, Slf4j, NoOp, Composite), and AuditExporter for JSON Lines export.
+        Zero framework dependencies — works with Spring, Quarkus, or plain Java.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

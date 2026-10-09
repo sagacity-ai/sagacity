@@ -8,7 +8,7 @@ spring:
     username: ${SAGACITY_DB_USER:sagacity}
     password: ${SAGACITY_DB_PASSWORD:sagacity}
 
-  # Schema initialisation — sagacity-schema.sql is on the classpath via sagacity-core dependency
+  # Schema initialisation — sagacity-schema.sql is on the classpath via sagacity-audit dependency
   sql:
     init:
       mode: always

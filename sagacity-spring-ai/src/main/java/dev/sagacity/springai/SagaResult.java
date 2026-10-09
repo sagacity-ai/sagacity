@@ -1,7 +1,7 @@
 package dev.sagacity.springai;
 
-import dev.sagacity.core.compensation.CompensationReport;
-import dev.sagacity.core.saga.SagaStatus;
+import dev.sagacity.recovery.CompensationReport;
+import dev.sagacity.recovery.SagaStatus;
 
 /**
  * Outcome of a saga run.
