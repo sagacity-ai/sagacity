@@ -4,65 +4,58 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import dev.sagacity.core.journal.AuditStore;
 import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.journal.SideEffectJournal;
 
 /**
  * MCP tool: append an entry to the Sagacity tamper-evident audit trail.
- *
- * <p>Agents call this tool before and after every side-effecting tool call
- * to produce a complete, hash-chained record of what the agent did. Each
- * entry is SHA-256 chained to the previous, making post-hoc tampering detectable.
- *
- * <p>Usage pattern:
- * <pre>
- *   1. Call log_tool_call(sagaId, toolName, input, "INTENT")   — before executing
- *   2. Execute the real tool
- *   3. Call log_tool_call(sagaId, toolName, result, "EXECUTED") — after success
- *      or log_tool_call(sagaId, toolName, error, "FAILED")      — after failure
- * </pre>
  */
 @Component
 public class AuditTool {
 
-    private final SideEffectJournal journal;
+    private final AuditStore auditStore;
 
-    public AuditTool(SideEffectJournal journal) {
-        this.journal = journal;
+    public AuditTool(AuditStore auditStore) {
+        this.auditStore = auditStore;
     }
 
     /**
      * Append a journal entry to the tamper-evident audit trail for a saga.
      *
-     * @param sagaId   unique identifier for the saga (agent workflow run)
-     * @param toolName name of the tool whose effect is being journaled
-     * @param payload  tool input (for INTENT) or output/error (for EXECUTED/FAILED)
-     * @param phase    lifecycle phase: INTENT, EXECUTED, FAILED, COMPENSATED,
-     *                 AWAITING_APPROVAL, APPROVED, or REJECTED
-     * @return confirmation string with the saga ID and assigned sequence number
+     * @param sagaId   unique identifier for the saga
+     * @param toolName name of the tool being journaled
+     * @param input    tool input JSON (for Intent) or output/error (for Executed/Failed)
+     * @param phase    lifecycle phase: Intent | Executed | Failed | Compensated |
+     *                 CompensationFailed | AwaitingApproval | Approved | Rejected
+     * @param data     phase-specific data — result for Executed, error for Failed/Rejected, else empty
+     * @return confirmation with saga ID and assigned sequence number
      */
     @Tool(description = """
             Append an entry to the Sagacity tamper-evident audit trail.
-            Call with phase=INTENT before a tool executes, then phase=EXECUTED on success
-            or phase=FAILED on error. Each entry is SHA-256 hash-chained to the previous,
-            making the audit trail tamper-evident for EU AI Act Article 12 compliance.
+            Call with phase=Intent before a tool executes, then phase=Executed on success
+            (data=result) or phase=Failed on error (data=errorMessage).
+            Each entry is SHA-256 hash-chained to the previous.
             """)
     public String logToolCall(
             @ToolParam(description = "Unique ID for this agent workflow run (saga)") String sagaId,
             @ToolParam(description = "Name of the tool being journaled") String toolName,
-            @ToolParam(description = "Tool input JSON (for INTENT) or output/error (for EXECUTED/FAILED)") String payload,
-            @ToolParam(description = "Lifecycle phase: INTENT | EXECUTED | FAILED | COMPENSATED | AWAITING_APPROVAL | APPROVED | REJECTED") String phase) {
+            @ToolParam(description = "Tool input JSON") String input,
+            @ToolParam(description = "Phase: Intent | Executed | Failed | Compensated | CompensationFailed | AwaitingApproval | Approved | Rejected") String phase,
+            @ToolParam(description = "Phase-specific data: result for Executed, error for Failed/CompensationFailed, reason for Rejected, empty otherwise") String data) {
 
         Phase journalPhase;
         try {
-            journalPhase = Phase.valueOf(phase.toUpperCase());
-        }
-        catch (IllegalArgumentException e) {
+            journalPhase = Phase.fromStorage(phase, data != null && !data.isBlank()
+                    ? "{\"result\":\"" + data + "\"}"   // best-effort: callers use data for all variants
+                    : "{}");
+        } catch (IllegalArgumentException e) {
             return "error: unknown phase '" + phase + "'. Valid values: "
-                    + "INTENT, EXECUTED, FAILED, COMPENSATED, AWAITING_APPROVAL, APPROVED, REJECTED";
+                    + "Intent, Executed, Failed, Compensated, CompensationFailed, "
+                    + "AwaitingApproval, Approved, Rejected";
         }
 
-        var entry = journal.append(sagaId, toolName, journalPhase, payload, "");
-        return "logged: sagaId=" + sagaId + " seq=" + entry.seq() + " phase=" + journalPhase;
+        var entry = auditStore.append(sagaId, toolName, journalPhase, input != null ? input : "");
+        return "logged: sagaId=" + sagaId + " seq=" + entry.seq()
+                + " phase=" + journalPhase.discriminator();
     }
 }

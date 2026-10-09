@@ -10,8 +10,8 @@ import dev.sagacity.core.approval.ApprovalStore;
 import dev.sagacity.core.approval.PostgresApprovalStore;
 import dev.sagacity.core.compensation.CompensationRegistry;
 import dev.sagacity.core.compensation.CompensationRunner;
-import dev.sagacity.core.journal.JdbcSideEffectJournal;
-import dev.sagacity.core.journal.SideEffectJournal;
+import dev.sagacity.core.journal.JdbcAuditStore;
+import dev.sagacity.core.journal.AuditStore;
 
 /**
  * Sagacity MCP Server — exposes Sagacity governance as MCP tools.
@@ -36,8 +36,8 @@ public class SagacityMcpServerApplication {
      * Schema is initialised by Spring Boot's {@code spring.sql.init} on first run.
      */
     @Bean
-    public SideEffectJournal sideEffectJournal(DataSource dataSource) {
-        return new JdbcSideEffectJournal(dataSource);
+    public AuditStore sideEffectJournal(DataSource dataSource) {
+        return new JdbcAuditStore(dataSource);
     }
 
     /**
@@ -69,7 +69,7 @@ public class SagacityMcpServerApplication {
      * Compensation runner — walks journal in reverse, triggers registered handlers.
      */
     @Bean
-    public CompensationRunner compensationRunner(SideEffectJournal journal, CompensationRegistry registry) {
+    public CompensationRunner compensationRunner(AuditStore journal, CompensationRegistry registry) {
         return new CompensationRunner(journal, registry);
     }
 }

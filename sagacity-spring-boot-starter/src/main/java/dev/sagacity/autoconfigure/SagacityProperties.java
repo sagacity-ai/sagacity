@@ -10,129 +10,71 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "sagacity")
 public class SagacityProperties {
 
-	/** Whether Sagacity auto-configuration is enabled. */
-	private boolean enabled = true;
+    /** Whether Sagacity auto-configuration is enabled. */
+    private boolean enabled = true;
 
-	/** Whether to auto-initialize the database schema on startup. */
-	private boolean schemaInit = true;
+    /** Whether to auto-initialize the database schema on startup. */
+    private boolean schemaInit = true;
 
-	/** Whether the approval REST endpoints are exposed. */
-	private boolean approvalEndpointsEnabled = true;
+    /** Whether the approval REST endpoints are exposed. */
+    private boolean approvalEndpointsEnabled = true;
 
-	/**
-	 * Whether the embedded UI is served at {@code /sagacity/ui}.
-	 * Enabled by default. Disable with {@code sagacity.ui-enabled=false}.
-	 */
-	private boolean uiEnabled = true;
+    /**
+     * Whether the embedded UI is served at {@code /sagacity/ui}.
+     * Enabled by default. Disable with {@code sagacity.ui-enabled=false}.
+     */
+    private boolean uiEnabled = true;
 
-	/** Cloud journal configuration. Activates when {@code sagacity.cloud.api-key} is set. */
-	private Cloud cloud = new Cloud();
+    /** Global retry backoff configuration. Per-tool retries are declared via {@code @Compensable}. */
+    private Retry retry = new Retry();
 
-	/** Global retry backoff configuration. Per-tool retries are declared via {@code @Compensable}. */
-	private Retry retry = new Retry();
+    /**
+     * AuditStore backend selection. Valid values:
+     * <ul>
+     *   <li>{@code jdbc} (default) — durable JDBC store with hash chain
+     *   <li>{@code slf4j} — zero-infrastructure logging store (dev/eval only)
+     *   <li>{@code memory} — in-memory store (test only, no persistence)
+     * </ul>
+     */
+    private String auditStore = "jdbc";
 
-	/**
-	 * AuditStore backend selection. Valid values:
-	 * <ul>
-	 *   <li>{@code jdbc} (default) — durable JDBC store with hash chain
-	 *   <li>{@code slf4j} — zero-infrastructure logging store (dev/eval only)
-	 *   <li>{@code memory} — in-memory store (test only, no persistence)
-	 * </ul>
-	 * Has no effect when {@code sagacity.cloud.api-key} is set (cloud takes priority).
-	 */
-	private String auditStore = "jdbc";
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
-	public boolean isEnabled() { return enabled; }
-	public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public boolean isSchemaInit() { return schemaInit; }
+    public void setSchemaInit(boolean schemaInit) { this.schemaInit = schemaInit; }
 
-	public boolean isSchemaInit() { return schemaInit; }
-	public void setSchemaInit(boolean schemaInit) { this.schemaInit = schemaInit; }
+    public boolean isApprovalEndpointsEnabled() { return approvalEndpointsEnabled; }
+    public void setApprovalEndpointsEnabled(boolean v) { this.approvalEndpointsEnabled = v; }
 
-	public boolean isApprovalEndpointsEnabled() { return approvalEndpointsEnabled; }
-	public void setApprovalEndpointsEnabled(boolean approvalEndpointsEnabled) { this.approvalEndpointsEnabled = approvalEndpointsEnabled; }
+    public boolean isUiEnabled() { return uiEnabled; }
+    public void setUiEnabled(boolean uiEnabled) { this.uiEnabled = uiEnabled; }
 
-	public boolean isUiEnabled() { return uiEnabled; }
-	public void setUiEnabled(boolean uiEnabled) { this.uiEnabled = uiEnabled; }
+    public Retry getRetry() { return retry; }
+    public void setRetry(Retry retry) { this.retry = retry; }
 
-	public Cloud getCloud() { return cloud; }
-	public void setCloud(Cloud cloud) { this.cloud = cloud; }
+    public String getAuditStore() { return auditStore; }
+    public void setAuditStore(String auditStore) { this.auditStore = auditStore; }
 
-	public Retry getRetry() { return retry; }
-	public void setRetry(Retry retry) { this.retry = retry; }
+    /**
+     * Global retry backoff configuration.
+     *
+     * <pre>
+     * sagacity:
+     *   retry:
+     *     initial-delay-ms: 100
+     *     backoff-multiplier: 2.0
+     * </pre>
+     */
+    public static class Retry {
 
-	public String getAuditStore() { return auditStore; }
-	public void setAuditStore(String auditStore) { this.auditStore = auditStore; }
+        private long initialDelayMs = 100L;
+        private double backoffMultiplier = 2.0;
 
-	/**
-	 * Global retry backoff configuration.
-	 *
-	 * <p>Per-tool retry counts and exception whitelists are declared on
-	 * {@code @Compensable(retries=3, retryOn={...})}. This section controls
-	 * the backoff timing shared across all retrying tools.
-	 *
-	 * <pre>
-	 * sagacity:
-	 *   retry:
-	 *     initial-delay-ms: 100      # default
-	 *     backoff-multiplier: 2.0    # default — exponential: 100ms, 200ms, 400ms
-	 * </pre>
-	 */
-	public static class Retry {
+        public long getInitialDelayMs() { return initialDelayMs; }
+        public void setInitialDelayMs(long v) { this.initialDelayMs = v; }
 
-		/** Initial backoff delay in milliseconds before the first retry. */
-		private long initialDelayMs = 100L;
-
-		/**
-		 * Exponential backoff multiplier applied per retry.
-		 * Must be >= 1.0. Default 2.0 gives: 100ms, 200ms, 400ms, 800ms...
-		 */
-		private double backoffMultiplier = 2.0;
-
-		public long getInitialDelayMs() { return initialDelayMs; }
-		public void setInitialDelayMs(long initialDelayMs) { this.initialDelayMs = initialDelayMs; }
-
-		public double getBackoffMultiplier() { return backoffMultiplier; }
-		public void setBackoffMultiplier(double backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
-	}
-
-	/**
-	 * Sagacity Cloud journal configuration.
-	 *
-	 * <p>When {@code sagacity.cloud.api-key} is set, the Cloud journal takes
-	 * priority over the local Postgres journal. The local {@code DataSource}, if
-	 * present, is still used for the {@code ApprovalStore} unless overridden.
-	 *
-	 * <pre>
-	 * sagacity:
-	 *   cloud:
-	 *     api-key: ${SAGACITY_CLOUD_API_KEY}
-	 *     # base-url: https://api.sagacity.dev   # default, override for self-hosted
-	 * </pre>
-	 */
-	public static class Cloud {
-
-		/**
-		 * Bearer token issued by the Sagacity Cloud dashboard.
-		 * When blank, the Cloud journal is not used.
-		 */
-		private String apiKey;
-
-		/**
-		 * Base URL of the Sagacity Cloud API.
-		 * Defaults to {@code https://api.sagacity.dev}.
-		 * Override for self-hosted deployments or staging.
-		 */
-		private String baseUrl;
-
-		public String getApiKey() { return apiKey; }
-		public void setApiKey(String apiKey) { this.apiKey = apiKey; }
-
-		public String getBaseUrl() { return baseUrl; }
-		public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
-
-		/** Returns true if a Cloud API key has been configured. */
-		public boolean isConfigured() {
-			return apiKey != null && !apiKey.isBlank();
-		}
-	}
+        public double getBackoffMultiplier() { return backoffMultiplier; }
+        public void setBackoffMultiplier(double v) { this.backoffMultiplier = v; }
+    }
 }

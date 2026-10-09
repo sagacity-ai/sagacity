@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import dev.sagacity.core.approval.ApprovalRequest;
 import dev.sagacity.core.approval.ApprovalStore;
 import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.journal.SideEffectJournal;
+import dev.sagacity.core.journal.AuditStore;
 
 /**
  * MCP tool: request human approval before an irreversible action.
@@ -26,9 +26,9 @@ public class ApprovalTool {
 
     private final ApprovalStore approvalStore;
 
-    private final SideEffectJournal journal;
+    private final AuditStore journal;
 
-    public ApprovalTool(ApprovalStore approvalStore, SideEffectJournal journal) {
+    public ApprovalTool(ApprovalStore approvalStore, AuditStore journal) {
         this.approvalStore = approvalStore;
         this.journal = journal;
     }
@@ -60,7 +60,7 @@ public class ApprovalTool {
             @ToolParam(description = "Exact JSON input that will be executed on approval") String input) {
 
         // Journal the suspension
-        journal.append(sagaId, toolName, Phase.AWAITING_APPROVAL, input, "");
+        journal.append(sagaId, toolName, new Phase.AwaitingApproval(), input);
 
         // Persist the approval request durably
         approvalStore.save(new ApprovalRequest(sagaId, journalSeq, toolName, input));

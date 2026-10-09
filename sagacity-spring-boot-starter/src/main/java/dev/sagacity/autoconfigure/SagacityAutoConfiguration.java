@@ -6,7 +6,6 @@ import dev.sagacity.core.approval.ApprovalStore;
 import dev.sagacity.core.approval.InMemoryApprovalStore;
 import dev.sagacity.core.approval.PostgresApprovalStore;
 import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.CloudAuditStore;
 import dev.sagacity.core.journal.InMemoryAuditStore;
 import dev.sagacity.core.journal.JdbcAuditStore;
 import dev.sagacity.core.journal.Slf4jAuditStore;
@@ -25,8 +24,7 @@ import org.springframework.context.annotation.Bean;
  * <h2>AuditStore selection — priority order</h2>
  * <ol>
  *   <li>User-declared {@code AuditStore} bean ({@code @ConditionalOnMissingBean})
- *   <li>{@code sagacity.cloud.api-key} set → {@link CloudAuditStore}
- *   <li>{@code sagacity.audit.store=slf4j} → {@link Slf4jAuditStore} (zero-infra dev mode)
+ *   <li>{@code sagacity.audit-store=slf4j} → {@link Slf4jAuditStore} (zero-infra dev mode)
  *   <li>{@code DataSource} bean present → {@link JdbcAuditStore}
  *   <li>Fallback → {@link InMemoryAuditStore} (dev/testing only)
  * </ol>
@@ -42,21 +40,12 @@ public class SagacityAutoConfiguration {
             org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
             SagacityProperties properties) {
 
-        // Priority 1: Cloud store when api-key is configured
-        SagacityProperties.Cloud cloud = properties.getCloud();
-        if (cloud.isConfigured()) {
-            String baseUrl = cloud.getBaseUrl();
-            return (baseUrl != null && !baseUrl.isBlank())
-                    ? new CloudAuditStore(cloud.getApiKey(), baseUrl)
-                    : new CloudAuditStore(cloud.getApiKey());
-        }
-
-        // Priority 2: Explicit Slf4j store (zero-infra dev mode)
+        // Priority 1: Explicit Slf4j store (zero-infra dev mode)
         if ("slf4j".equalsIgnoreCase(properties.getAuditStore())) {
             return new Slf4jAuditStore();
         }
 
-        // Priority 3: JDBC store
+        // Priority 2: JDBC store
         DataSource dataSource = dataSourceProvider.getIfAvailable();
         if (dataSource != null) {
             if (properties.isSchemaInit()) {
@@ -65,7 +54,7 @@ public class SagacityAutoConfiguration {
             return new JdbcAuditStore(dataSource);
         }
 
-        // Priority 4: In-memory fallback
+        // Priority 3: In-memory fallback
         return new InMemoryAuditStore();
     }
 
