@@ -1,7 +1,7 @@
 package dev.sagacity.autoconfigure;
 
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.journal.AuditStore;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.audit.AuditStore;
 import dev.sagacity.springai.Sagacity;
 
 import org.junit.jupiter.api.DisplayName;
@@ -50,7 +50,7 @@ class SagacityAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(AuditStore.class);
                     assertThat(context.getBean(AuditStore.class))
-                            .isInstanceOf(dev.sagacity.core.journal.JdbcAuditStore.class);
+                            .isInstanceOf(dev.sagacity.audit.JdbcAuditStore.class);
                 });
     }
 
@@ -64,14 +64,14 @@ class SagacityAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(
                         org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class))
                 .run(context -> assertThat(context.getBean(ApprovalStore.class))
-                        .isInstanceOf(dev.sagacity.core.approval.PostgresApprovalStore.class));
+                        .isInstanceOf(dev.sagacity.control.PostgresApprovalStore.class));
     }
 
     @Test
     @DisplayName("uses InMemoryApprovalStore when no DataSource")
     void usesInMemoryApprovalStoreWhenNoDataSource() {
         contextRunner.run(context -> assertThat(context.getBean(ApprovalStore.class))
-                .isInstanceOf(dev.sagacity.core.approval.InMemoryApprovalStore.class));
+                .isInstanceOf(dev.sagacity.control.InMemoryApprovalStore.class));
     }
 
     @Test
@@ -79,7 +79,7 @@ class SagacityAutoConfigurationTest {
     void usesInMemoryAuditStoreWhenNoDataSource() {
         contextRunner.run(context ->
                 assertThat(context.getBean(AuditStore.class))
-                        .isInstanceOf(dev.sagacity.core.journal.InMemoryAuditStore.class));
+                        .isInstanceOf(dev.sagacity.audit.InMemoryAuditStore.class));
     }
 
     @Test
@@ -89,7 +89,7 @@ class SagacityAutoConfigurationTest {
                 .withPropertyValues("sagacity.audit-store=slf4j")
                 .run(context ->
                         assertThat(context.getBean(AuditStore.class))
-                                .isInstanceOf(dev.sagacity.core.journal.Slf4jAuditStore.class));
+                                .isInstanceOf(dev.sagacity.audit.Slf4jAuditStore.class));
     }
 
     // ── REST endpoint registration ──────────────────────────────────────────

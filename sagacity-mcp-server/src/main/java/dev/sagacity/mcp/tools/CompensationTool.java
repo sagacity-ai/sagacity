@@ -4,9 +4,9 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import dev.sagacity.core.compensation.CompensationReport;
-import dev.sagacity.core.compensation.CompensationRunner;
-import dev.sagacity.core.journal.AuditStore;
+import dev.sagacity.recovery.CompensationReport;
+import dev.sagacity.recovery.CompensationRunner;
+import dev.sagacity.audit.AuditStore;
 
 /**
  * MCP tools: trigger compensation and inspect audit entries for a saga.

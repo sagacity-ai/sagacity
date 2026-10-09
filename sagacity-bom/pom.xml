@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.sumitvairagar</groupId>
+        <artifactId>sagacity-parent</artifactId>
+        <version>0.5.0</version>
+    </parent>
+
+    <artifactId>sagacity-bom</artifactId>
+    <packaging>pom</packaging>
+    <name>Sagacity BOM</name>
+    <description>
+        Bill of Materials for Sagacity. Import this BOM to align all Sagacity module
+        versions without specifying each one individually.
+
+        Usage:
+          &lt;dependencyManagement&gt;
+            &lt;dependencies&gt;
+              &lt;dependency&gt;
+                &lt;groupId&gt;io.github.sumitvairagar&lt;/groupId&gt;
+                &lt;artifactId&gt;sagacity-bom&lt;/artifactId&gt;
+                &lt;version&gt;0.5.0&lt;/version&gt;
+                &lt;type&gt;pom&lt;/type&gt;
+                &lt;scope&gt;import&lt;/scope&gt;
+              &lt;/dependency&gt;
+            &lt;/dependencies&gt;
+          &lt;/dependencyManagement&gt;
+    </description>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.github.sumitvairagar</groupId>
+                <artifactId>sagacity-audit</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.sumitvairagar</groupId>
+                <artifactId>sagacity-control</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.sumitvairagar</groupId>
+                <artifactId>sagacity-recovery</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.sumitvairagar</groupId>
+                <artifactId>sagacity-spring-ai</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.sumitvairagar</groupId>
+                <artifactId>sagacity-langchain4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.sumitvairagar</groupId>
+                <artifactId>sagacity-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

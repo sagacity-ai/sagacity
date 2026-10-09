@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.sumitvairagar</groupId>
         <artifactId>sagacity-parent</artifactId>
-        <version>0.4.0</version>
+        <version>0.5.0</version>
     </parent>
 
     <artifactId>sagacity-spring-ai</artifactId>
@@ -17,7 +17,15 @@
     <dependencies>
         <dependency>
             <groupId>io.github.sumitvairagar</groupId>
-            <artifactId>sagacity-core</artifactId>
+            <artifactId>sagacity-audit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-control</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.sumitvairagar</groupId>
+            <artifactId>sagacity-recovery</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>

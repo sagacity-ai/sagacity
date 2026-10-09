@@ -4,8 +4,8 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.Phase;
+import dev.sagacity.audit.AuditStore;
+import dev.sagacity.audit.Phase;
 
 /**
  * MCP tool: append an entry to the Sagacity tamper-evident audit trail.

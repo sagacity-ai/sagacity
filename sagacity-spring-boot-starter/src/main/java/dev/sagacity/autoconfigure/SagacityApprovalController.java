@@ -4,10 +4,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import dev.sagacity.core.approval.ApprovalDecision;
-import dev.sagacity.core.approval.ApprovalRequest;
-import dev.sagacity.core.audit.AuditExporter;
-import dev.sagacity.core.saga.SagaStatus;
+import dev.sagacity.control.ApprovalDecision;
+import dev.sagacity.control.ApprovalRequest;
+import dev.sagacity.audit.AuditExporter;
+import dev.sagacity.recovery.SagaStatus;
 import dev.sagacity.springai.Sagacity;
 import dev.sagacity.springai.SagaResult;
 

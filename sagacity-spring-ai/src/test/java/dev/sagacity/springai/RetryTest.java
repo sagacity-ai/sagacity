@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import dev.sagacity.core.annotation.Compensable;
-import dev.sagacity.core.annotation.Compensation;
-import dev.sagacity.core.compensation.CompensationContext;
-import dev.sagacity.core.journal.Phase;
-import dev.sagacity.core.saga.SagaStatus;
+import dev.sagacity.recovery.Compensable;
+import dev.sagacity.recovery.Compensation;
+import dev.sagacity.recovery.CompensationContext;
+import dev.sagacity.audit.Phase;
+import dev.sagacity.recovery.SagaStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;

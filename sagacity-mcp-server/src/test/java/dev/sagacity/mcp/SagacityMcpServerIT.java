@@ -12,9 +12,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import dev.sagacity.core.approval.ApprovalStore;
-import dev.sagacity.core.journal.AuditStore;
-import dev.sagacity.core.journal.Phase;
+import dev.sagacity.control.ApprovalStore;
+import dev.sagacity.audit.AuditStore;
+import dev.sagacity.audit.Phase;
 import dev.sagacity.mcp.tools.AuditTool;
 import dev.sagacity.mcp.tools.ApprovalTool;
 import dev.sagacity.mcp.tools.CompensationTool;
