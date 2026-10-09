@@ -15,7 +15,7 @@
     <description>Aggregate JaCoCo report across all modules. Not published.</description>
 
     <!--
-      Per-module JaCoCo reports understate coverage: a class in sagacity-core
+      Per-module JaCoCo reports understate coverage: a class in sagacity-audit
       exercised only by sagacity-spring-ai tests shows as 0% in core's own
       report. This module depends on every published module so report-aggregate
       can merge the execution data into one honest number.

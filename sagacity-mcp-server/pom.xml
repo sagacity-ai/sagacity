@@ -104,7 +104,7 @@
                             <!--
                               Keeps the original thin jar intact for Failsafe / Surefire
                               classpath resolution. The runnable fat jar gets a separate
-                              "exec" classifier: sagacity-mcp-server-0.4.0-exec.jar.
+                              "exec" classifier: sagacity-mcp-server-0.5.0-exec.jar.
                             -->
                             <classifier>exec</classifier>
                         </configuration>
